@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WFFL 2026 — League Hub</title>
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="WFFL Hub">
+<meta name="theme-color" content="#0f3f28">
+<meta property="og:title" content="WFFL League Hub">
+<meta property="og:description" content="Standings, playoff odds, matchups that matter and more for the WFFL.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ffffff; --panel:#ffffff; --panel2:#f4f6f9; --line:#e3e8ee; --text:#111827; --muted:#4b5563; --dim:#6b7280;
+  --turf:#2fbf71; --turf-d:#1f9a58; --turf-t:#178a4b; --gold:#f2c14e; --gold-t:#a87a06; --red:#ef5b5b; --red-t:#c93b3b; --blue:#5aa9ff; --blue-t:#2a74c9; --violet:#a98bff;
+  --mono:'JetBrains Mono',ui-monospace,monospace; --head:'Oswald',Impact,sans-serif; --body:'Inter',system-ui,sans-serif;
+  --nav:#0b0f14;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:60px}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 var(--body);-webkit-font-smoothing:antialiased}
+a{color:var(--blue-t)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 18px}
+.hero{background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),rgba(255,255,255,.06) calc(10% - 1px) 10%),linear-gradient(160deg,#145c39 0%,#0f3f28 60%,#0b2b1c 100%);color:#fff}
+.hero .wrap{padding-top:34px;padding-bottom:28px}
+.kicker{font:600 12px/1 var(--mono);letter-spacing:.18em;color:#7ee2a8;text-transform:uppercase}
+h1{font:700 clamp(38px,7vw,68px)/.95 var(--head);margin:10px 0 8px;letter-spacing:.01em;text-transform:uppercase}
+h1 span{color:var(--gold)}
+.sub{color:#d6e6dc;max-width:720px;font-size:15px}
+.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.chip{font:500 12px/1 var(--mono);padding:7px 10px;border:1px solid rgba(255,255,255,.2);border-radius:999px;background:rgba(0,0,0,.25);color:#e3f2e9}
+.chip b{color:var(--gold);font-weight:700}
+nav{position:sticky;top:0;z-index:20;background:var(--nav);box-shadow:0 2px 10px rgba(0,0,0,.15)}
+nav .wrap{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav a{color:#7d8a9b;text-decoration:none;font:600 13px/1 var(--head);letter-spacing:.08em;text-transform:uppercase;padding:16px 11px;white-space:nowrap;border-bottom:3px solid transparent;transition:color .2s,border-color .2s}
+nav a:hover{color:#cfd8e3}
+nav a.active{color:#fff;border-bottom-color:var(--turf);text-shadow:0 0 12px rgba(255,255,255,.45)}
+section{padding:38px 0 8px}
+h2{font:600 28px/1 var(--head);text-transform:uppercase;letter-spacing:.03em;margin:0 0 6px;display:flex;align-items:center;gap:10px}
+h2 .n{font:700 12px/1 var(--mono);color:#fff;background:var(--turf-d);padding:5px 7px;border-radius:4px}
+.lede{color:var(--muted);margin:0 0 16px;max-width:800px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.pad{padding:16px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(330px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+table{width:100%;border-collapse:collapse}
+th{font:600 11px/1.2 var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.06em;text-align:right;padding:10px 8px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--panel2)}
+td{padding:9px 8px;border-bottom:1px solid #eef1f5;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+th.l,td.l{text-align:left}
+tr:last-child td{border-bottom:0}
+.scroll{overflow-x:auto}
+.num{font-family:var(--mono);font-weight:500}
+.muted{color:var(--muted)} .dim{color:var(--dim)}
+.pos{color:var(--turf-t)} .neg{color:var(--red-t)} .gold{color:var(--gold-t)}
+.team{display:flex;align-items:center;gap:9px;min-width:0}
+.badge{flex:0 0 auto;width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font:700 11px/1 var(--mono);color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.25)}
+.tname{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.mgr{color:var(--dim);font-size:12px}
+.seed{font:700 13px/1 var(--mono);width:22px;display:inline-block;text-align:center}
+.cutline td{border-bottom:2px dashed var(--gold)!important}
+.status{font:700 10px/1 var(--mono);padding:3px 5px;border-radius:3px;margin-left:6px;vertical-align:1px}
+.st-x{background:var(--turf);color:#06210f} .st-y{background:var(--gold);color:#1a1400} .st-e{background:#fde4e4;color:var(--red-t)}
+.bar{position:relative;height:20px;min-width:92px;background:#eef1f5;border-radius:4px;overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#8fe0b4,var(--turf));border-radius:4px}
+.bar.b2 i{background:linear-gradient(90deg,#f8dd96,var(--gold))}
+.bar span{position:relative;z-index:1;font:700 11px/20px var(--mono);padding:0 6px;display:block;text-align:right;color:var(--text)}
+.tstrip{border-left:4px solid transparent}
+.mu{padding:14px 16px;display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;border-bottom:1px solid var(--line)}
+.mu:last-child{border-bottom:0}
+.mu .side{display:flex;flex-direction:column;gap:3px;min-width:0}
+.mu .side.r{align-items:flex-end;text-align:right}
+.mu .vs{font:600 11px/1 var(--mono);color:var(--dim);text-align:center}
+.wp{height:6px;border-radius:3px;overflow:hidden;margin-top:8px;grid-column:1/-1;display:flex}
+.wp i{display:block;height:100%}
+.score{font:700 22px/1 var(--mono)}
+.score.win{color:var(--turf-t)}
+.stake{grid-column:1/-1;display:flex;justify-content:space-between;font-size:12px;color:var(--muted);gap:10px;flex-wrap:wrap}
+.flame{font:700 11px/1 var(--mono);padding:4px 7px;border-radius:999px;background:#fff1e3;color:#c2600f;border:1px solid #ffd7b0}
+.flame.hot{background:#ffe6e3;color:#c9302c;border-color:#ffc4bd}
+.flame.cool{background:#eaf3fb;color:#2a6a9e;border-color:#cfe3f3}
+select{background:#fff;color:var(--text);border:1px solid #cfd6df;border-radius:8px;padding:9px 12px;font:600 14px var(--body)}
+.root{display:grid;grid-template-columns:1fr auto;gap:8px 14px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line)}
+.root:last-child{border-bottom:0}
+.pick{font-weight:700}
+.delta{font:700 13px/1 var(--mono);padding:6px 8px;border-radius:6px;background:#e5f7ed;color:var(--turf-t);min-width:72px;text-align:center}
+.delta.small{background:var(--panel2);color:var(--dim)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.kpi .k{font:600 11px/1.2 var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+.kpi .v{font:700 26px/1.1 var(--head);margin-top:6px}
+.kpi .s{font-size:12px;color:var(--muted)}
+.bracket{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:center}
+@media(max-width:720px){.bracket{grid-template-columns:1fr}}
+.bslot{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 11px;display:flex;gap:9px;align-items:center;margin:6px 0}
+.bslot .seed{color:var(--gold-t)}
+.blabel{font:600 11px/1 var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.hm td{padding:0;border:0}
+.hm .cell{font:600 11px/30px var(--mono);text-align:center;min-width:46px;border:2px solid #fff;border-radius:6px;position:relative;color:#1f2937}
+.hm .cell.W::after{content:"";position:absolute;left:4px;top:4px;width:6px;height:6px;border-radius:50%;background:#111827}
+.hm .cell.L::after{content:"";position:absolute;left:4px;top:4px;width:4px;height:4px;border-radius:50%;border:1px solid #111827}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:10px;flex-wrap:wrap;align-items:center}
+.legend .sw{display:inline-block;width:40px;height:10px;border-radius:2px;vertical-align:middle;background:linear-gradient(90deg,#fbd0d0,#fff1c2,#bfead2,#2fbf71)}
+.tx{display:grid;grid-template-columns:auto 1fr auto;gap:12px;padding:11px 16px;border-bottom:1px solid var(--line);align-items:start}
+.tx:last-child{border-bottom:0}
+.ic{font:700 10px/1 var(--mono);padding:5px 6px;border-radius:4px;text-transform:uppercase;width:52px;text-align:center}
+.ic.add{background:#e3f6eb;color:var(--turf-t)} .ic.drop{background:#fde7e7;color:var(--red-t)} .ic.trade{background:#efeaff;color:#6a4fd6} .ic.ad{background:#e6f1fd;color:var(--blue-t)}
+.tx .p{font-size:13px}
+.tx .p .plus{color:var(--turf-t);font-weight:700} .tx .p .minus{color:var(--red-t);font-weight:700}
+.trade-row{background:linear-gradient(90deg,rgba(169,139,255,.12),transparent)}
+/* headlines */
+.hgrid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.hcard{background:#fff;border:1px solid var(--line);border-top:5px solid var(--accent,var(--turf));border-radius:12px;padding:16px 18px 18px;box-shadow:0 1px 3px rgba(16,24,40,.06)}
+.hcard .tag{font:700 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--accent-t,var(--turf-t))}
+.hcard h3{font:600 22px/1.15 var(--head);margin:8px 0 8px;letter-spacing:.01em}
+.hcard p{margin:0;color:var(--muted);font-size:14.5px;line-height:1.55}
+.tp{display:inline-block;font-weight:700;padding:1px 7px;border-radius:5px;white-space:nowrap;font-size:.95em}
+/* matchups that matter */
+.mtm td{vertical-align:top;white-space:normal}
+.mtm .who{font-size:13px;line-height:1.6;text-align:left;min-width:280px}
+.mtm .who .lab{font:700 10px/1 var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-right:4px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:0}
+.ctrls{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+/* needs */
+.need{font:700 11px/1 var(--mono);padding:5px 8px;border-radius:5px;text-transform:uppercase;letter-spacing:.04em;display:inline-block;min-width:62px;text-align:center}
+.need.strong{background:#dff5e8;color:var(--turf-t)} .need.ok{background:var(--panel2);color:var(--dim)} .need.weak{background:#fde4e4;color:var(--red-t)}
+.deep{font:700 10px/1 var(--mono);padding:4px 6px;border-radius:4px;background:#e6f1fd;color:var(--blue-t);margin:0 3px 3px 0;display:inline-block}
+.tcard{padding:14px 16px;border-bottom:1px solid var(--line)}
+.tcard:last-child{border-bottom:0}
+.tsides{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+@media(max-width:640px){.tsides{grid-template-columns:1fr}}
+.tside .pl{font-size:13px;display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #e6eaf0}
+.tside .pl:last-child{border-bottom:0}
+.split{display:flex;height:8px;border-radius:4px;overflow:hidden;margin-top:12px}
+.verdict{font:700 11px/1 var(--mono);padding:5px 8px;border-radius:999px;background:var(--panel2);color:var(--muted)}
+.award{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.award:last-child{border-bottom:0}
+.award .a{font:600 11px/1.3 var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+.weekpick{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.weekpick button{background:#fff;color:var(--muted);border:1px solid #cfd6df;border-radius:6px;padding:7px 10px;font:600 12px var(--mono);cursor:pointer}
+.weekpick button.on{background:var(--turf-d);color:#fff;border-color:var(--turf-d)}
+.dist{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.dist div{flex:1 1 70px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px;text-align:center}
+.dist .r{font:700 14px/1 var(--mono)}
+.dist .p{font:700 18px/1.3 var(--head)}
+.dist .f{font-size:11px;color:var(--dim)}
+footer{color:var(--dim);font-size:12px;padding:40px 0 60px;border-top:1px solid var(--line);margin-top:30px}
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap">
+  <div class="kicker">Yahoo League #<span id="lid"></span> · 2026 Season</div>
+  <h1>WFFL <span>League Hub</span></h1>
+  <div class="sub" id="heroSub"></div>
+  <div class="meta" id="heroMeta"></div>
+</div></header>
+<nav><div class="wrap" id="navLinks">
+  <a href="#headlines">Headlines</a><a href="#standings">Standings</a><a href="#thisweek">This Week</a><a href="#stakes">Matchups That Matter</a><a href="#rooting">Rooting Guide</a><a href="#bracket">Playoff Picture</a><a href="#power">Power Rankings</a><a href="#trades">Trades &amp; Needs</a><a href="#results">Results</a><a href="#moves">Moves</a><a href="#heatmap">Score Grid</a>
+</div></nav>
+<main class="wrap">
+
+<section id="headlines">
+  <h2><span class="n">01</span>Headlines</h2>
+  <p class="lede">The storylines worth knowing, built from the latest standings, results and moves.</p>
+  <div class="hgrid" id="headlineList"></div>
+</section>
+
+<section id="standings">
+  <h2><span class="n">02</span>Standings &amp; Playoff Odds</h2>
+  <p class="lede">Top 6 make the playoffs (Weeks 15–17), and the top 2 seeds get a first-round bye. Ties are broken by points for. Odds come from <span id="nsims"></span> simulations of the rest of the regular season. <span class="status st-x">X</span> clinched a playoff spot · <span class="status st-y">Y</span> clinched a bye · <span class="status st-e">E</span> eliminated.</p>
+  <div class="card scroll"><table id="standTbl"></table></div>
+</section>
+
+<section id="thisweek">
+  <h2><span class="n">03</span><span id="twTitle">This Week</span></h2>
+  <p class="lede" id="twLede"></p>
+  <div class="card" id="twList"></div>
+</section>
+
+<section id="stakes">
+  <h2><span class="n">04</span>Matchups That Matter</h2>
+  <p class="lede"><b>Stakes</b> is the total change in playoff odds across the league between the two possible results. A higher number means a bigger game. For each side, you'll see the teams (other than the two playing) whose odds improve if that side wins, with the change in percentage points.</p>
+  <div class="ctrls"><select id="stakesSel"></select><span class="muted" id="stakesNote"></span></div>
+  <div class="card scroll"><table class="mtm" id="stakesTbl"></table></div>
+</section>
+
+<section id="rooting">
+  <h2><span class="n">05</span>Rooting Guide</h2>
+  <p class="lede">Pick a team to see who it should cheer for in each game, its odds by final record, and how much each result moves the needle.</p>
+  <div style="margin-bottom:14px"><select id="rootSel"></select></div>
+  <div class="grid g2">
+    <div class="card pad" id="rootSummary"></div>
+    <div class="card" id="rootList"></div>
+  </div>
+</section>
+
+<section id="bracket">
+  <h2><span class="n">06</span>Playoff Picture</h2>
+  <p class="lede">If the season ended today. Playoffs are reseeded after each round.</p>
+  <div class="card pad"><div class="bracket" id="bracketBox"></div></div>
+  <div class="grid g3" style="margin-top:14px" id="seedOdds"></div>
+</section>
+
+<section id="power">
+  <h2><span class="n">07</span>Power Rankings</h2>
+  <p class="lede"><b>All-play</b> is each team's record if it had played every other team every week. <b>Luck</b> is actual wins minus all-play expected wins: positive means the schedule has helped. The power score blends all-play win rate (50%), recent form over the last 3 weeks (30%) and actual record (20%).</p>
+  <div class="card scroll"><table id="powerTbl"></table></div>
+</section>
+
+<section id="trades">
+  <h2><span class="n">08</span>Trades &amp; Team Needs</h2>
+  <p class="lede">Where each team is <b>strong</b> or <b>needs help</b>, compared with the rest of the league's starters. Ratings use each player's season and last-4-week scoring, with injured-reserve and "Out" players left out. <b>Deep at</b> marks positions where a team has more startable players than lineup spots. Labels only: no rankings or numbers, so nobody's trade leverage gets exposed.</p>
+  <div class="card scroll"><table id="needsTbl"></table></div>
+  <h3 style="font:600 20px var(--head);text-transform:uppercase;margin:26px 0 6px">Trade ledger</h3>
+  <p class="lede">Every trade this season, scored by what each side's players have produced: season points plus their average over the last 4 weeks. The bar shows each side's share of the combined recent production. Players since dropped count as zero.</p>
+  <div class="card" id="tradeList"></div>
+</section>
+
+<section id="results">
+  <h2><span class="n">09</span>Results &amp; Awards</h2>
+  <p class="lede">Every week's scores with the weekly hardware. Season records are at the bottom.</p>
+  <div class="weekpick" id="weekPick"></div>
+  <div class="grid g2">
+    <div class="card" id="weekGames"></div>
+    <div class="card pad" id="weekAwards"></div>
+  </div>
+  <div class="card pad" style="margin-top:14px"><div class="grid g3" id="seasonRecords"></div></div>
+</section>
+
+<section id="moves">
+  <h2><span class="n">10</span>Transactions &amp; Activity</h2>
+  <p class="lede">Latest adds, drops and trades. The trade deadline is <b id="deadline"></b>.</p>
+  <div class="grid g2">
+    <div class="card" id="txList"></div>
+    <div class="card scroll"><table id="actTbl"></table></div>
+  </div>
+</section>
+
+<section id="heatmap">
+  <h2><span class="n">11</span>Score Grid</h2>
+  <p class="lede">Every team's score every week. Greener means higher. A filled dot is a win; a hollow dot is a loss.</p>
+  <div class="card pad scroll"><table class="hm" id="hmTbl"></table>
+  <div class="legend"><span><span class="sw"></span> low → high</span><span>● win · ○ loss</span><span>Season average on the right</span></div></div>
+</section>
+
+<footer>
+  Data from the WFFL Yahoo league page, refreshed automatically. Playoff odds are a model, not a promise: each team's future scores are simulated from its season average blended with Yahoo's weekly projections. <span id="footUpd"></span>
+</footer>
+</main>
+
+<script id="league-data" type="application/json">{"league": {"id": 68635, "name": "WFFL", "playoffTeams": 6, "byes": 2, "regWeeks": 14, "playoffWeeks": [15, 16, 17], "tradeDeadline": "Nov 28, 2026", "url": "https://football.fantasysports.yahoo.com/f1/68635"}, "updated": "2026-11-18T13:03:00-05:00", "currentWeek": 11, "teams": {"1": {"name": "Golden Face", "mgr": "Harrison", "faab": 370, "moves": 27}, "2": {"name": "I LoveLandin 3s", "mgr": "Ben", "faab": 460, "moves": 13}, "3": {"name": "Most LIKELY to Succeed", "mgr": "Charlie S.", "faab": 232, "moves": 23}, "4": {"name": "Breece Stew", "mgr": "Lawrence", "faab": 326, "moves": 18}, "5": {"name": "Uh oh… Reichard", "mgr": "Lucas", "faab": 232, "moves": 16}, "6": {"name": "Garry had a little Lamb", "mgr": "Ian", "faab": 241, "moves": 19}, "7": {"name": "Walk em down w the 9", "mgr": "Will", "faab": 436, "moves": 22}, "8": {"name": "Brown Town", "mgr": "Noah", "faab": 252, "moves": 6}, "9": {"name": "Gibbs me a woody", "mgr": "Charlie K.", "faab": 25, "moves": 31}, "10": {"name": "Shantytown", "mgr": "Jake", "faab": 36, "moves": 20}}, "weeks": {"1": {"final": true, "games": [[10, 4, 152.66, 168.62, 112.08, 125.63], [1, 3, 102.5, 126.5, 130.47, 121.79], [2, 8, 124.72, 147.46, 132.65, 119.43], [5, 6, 146.76, 143.06, 128.72, 131.04], [7, 9, 153.86, 129.36, 124.01, 121.72]]}, "2": {"final": true, "games": [[10, 5, 83.88, 135.4, 125.96, 123.45], [1, 2, 131.26, 96.82, 128.3, 133.76], [3, 7, 123.4, 120.72, 122.06, 119.55], [4, 9, 78.06, 103.94, 111.79, 122.52], [6, 8, 155.98, 170.42, 129.65, 127.05]]}, "3": {"final": true, "games": [[10, 8, 136.58, 102.76, 123.99, 128.4], [1, 6, 122.74, 142.82, 127.43, 113.29], [2, 3, 125.56, 109.5, 126.25, 120.79], [4, 7, 112.02, 112.34, 126.64, 123.15], [5, 9, 143.64, 170.94, 133.19, 129.81]]}, "4": {"final": true, "games": [[10, 1, 136.22, 119.6, 131.86, 125.34], [2, 7, 118.28, 153.28, 126.36, 132.25], [3, 6, 93.82, 105.92, 119.88, 124.37], [4, 5, 165.22, 113.98, 132.75, 130.36], [8, 9, 121.22, 130.1, 129.15, 146.39]]}, "5": {"final": true, "games": [[10, 3, 135.1, 139.46, 132.36, 122.53], [1, 9, 147.04, 160.58, 136.53, 139.77], [2, 6, 157.46, 137.4, 132.01, 133.09], [4, 8, 158.3, 85.9, 129.92, 124.25], [5, 7, 136.4, 116.64, 131.66, 115.49]]}, "6": {"final": true, "games": [[10, 2, 121.44, 131.5, 131.77, 116.87], [1, 4, 100.6, 130.92, 136.84, 135.49], [3, 9, 113.66, 98.5, 125.51, 128.14], [5, 8, 102.44, 78.22, 114.68, 105.49], [6, 7, 122.64, 136.3, 119.47, 131.6]]}, "7": {"final": true, "games": [[10, 6, 127.18, 97.06, 134.67, 119.7], [1, 5, 127.32, 104.32, 138.18, 125.22], [2, 9, 149.34, 126.82, 135.03, 146.97], [3, 4, 108.82, 138.8, 119.31, 139.27], [7, 8, 97.02, 128.48, 131.85, 126.09]]}, "8": {"final": true, "games": [[10, 7, 173.38, 80.78, 130.99, 134.33], [1, 8, 127.96, 114.8, 134.95, 122.65], [2, 4, 88.66, 131.08, 122.76, 135.98], [3, 5, 123.3, 148.8, 120.44, 110.24], [6, 9, 112.02, 133.48, 124.52, 135.43]]}, "9": {"final": true, "games": [[10, 9, 154.14, 115.26, 141.1, 141.26], [1, 7, 141.06, 103.86, 138.28, 131.42], [2, 5, 133.16, 128.88, 140.56, 110.49], [3, 8, 139.58, 113.5, 121.04, 127.08], [4, 6, 121.02, 131.98, 116.71, 121.6]]}, "10": {"final": true, "games": [[10, 4, 117.26, 147.38, 130.44, 116.91], [1, 3, 134.64, 160.56, 138.75, 118.3], [2, 8, 93.62, 146.82, 137.68, 122.68], [5, 6, 155.02, 142.9, 126.88, 122.33], [7, 9, 151.22, 144.56, 132.1, 138.04]]}, "11": {"final": false, "games": [[10, 5, 0, 0, 124.47, 127.09], [1, 2, 0, 0, 130.8, 89.93], [3, 7, 0, 0, 123.33, 124.61], [4, 9, 0, 0, 122.17, 118.55], [6, 8, 0, 0, 119.06, 130.74]]}, "12": {"final": false, "games": [[10, 8, 0, 0, 134.35, 127.08], [1, 6, 0, 0, 131.85, 115.75], [2, 3, 0, 0, 109.07, 126.46], [4, 7, 0, 0, 116, 118.48], [5, 9, 0, 0, 126.05, 119.82]]}, "13": {"final": false, "games": [[10, 1, 0, 0, 121.38, 131.24], [2, 7, 0, 0, 124.11, 100.12], [3, 6, 0, 0, 125.04, 90.67], [4, 5, 0, 0, 86.41, 120.29], [8, 9, 0, 0, 114.7, 109.42]]}, "14": {"final": false, "games": [[10, 3, 0, 0, 127.57, 109.54], [1, 9, 0, 0, 127.69, 118.46], [2, 6, 0, 0, 114.77, 90.32], [4, 8, 0, 0, 101.06, 85.04], [5, 7, 0, 0, 121.42, 121.26]]}}, "transactions": [{"type": "add/drop", "ts": "Nov 18, 12:20 pm", "team": 10, "add": "T.J. Hockenson (Min TE)", "addHow": "Free Agent", "drop": "Kyle Pitts Sr. (Atl TE)"}, {"type": "add/drop", "ts": "Nov 18, 12:20 pm", "team": 10, "add": "Ryan Flournoy (Dal WR)", "addHow": "Free Agent", "drop": "Wan'Dale Robinson (Ten WR)"}, {"type": "trade", "ts": "Nov 18, 12:15 pm", "legs": [{"to": 2, "players": ["Tank Dell (Hou WR)", "Rachaad White (Was RB)"]}, {"to": 9, "players": ["Rico Dowdle (Pit RB)"]}]}, {"type": "add", "ts": "Nov 18, 11:58 am", "team": 4, "add": "Fernando Mendoza (LV QB)", "addHow": "Free Agent"}, {"type": "add/drop", "ts": "Nov 18, 7:10 am", "team": 7, "add": "Lions (Det DEF)", "addHow": "Free Agent", "drop": "Bengals (Cin DEF)"}, {"type": "add/drop", "ts": "Nov 18, 5:08 am", "team": 9, "add": "Chig Okonkwo (Was TE)", "addHow": "$0 Waiver", "drop": "Bam Knight (Ari RB)"}, {"type": "add/drop", "ts": "Nov 18, 5:08 am", "team": 3, "add": "Cam Ward (Ten QB)", "addHow": "$35 Waiver", "drop": "Dylan Sampson (Cle RB)"}, {"type": "add/drop", "ts": "Nov 18, 5:08 am", "team": 9, "add": "Aaron Jones Sr. (Min RB)", "addHow": "$57 Waiver", "drop": "Jakobi Meyers (Jax WR)"}, {"type": "add", "ts": "Nov 17, 10:41 am", "team": 6, "add": "Bears (Chi DEF)", "addHow": "Free Agent (by Commish)"}, {"type": "drop", "ts": "Nov 17, 10:40 am", "team": 4, "drop": "Bears (Chi DEF)"}, {"type": "drop", "ts": "Nov 17, 10:25 am", "team": 6, "drop": "Kaleb Johnson (GB RB)"}, {"type": "drop", "ts": "Nov 17, 8:46 am", "team": 3, "drop": "Germie Bernard (Pit WR)"}, {"type": "trade", "ts": "Nov 16, 12:04 pm", "legs": [{"to": 3, "players": ["Makai Lemon (Phi WR)"]}, {"to": 1, "players": ["Tucker Kraft (GB TE)"]}]}, {"type": "drop", "ts": "Nov 15, 11:39 am", "team": 6, "drop": "Audric Estime (NO RB)"}, {"type": "add/drop", "ts": "Nov 14, 8:15 pm", "team": 3, "add": "Buccaneers (TB DEF)", "addHow": "Free Agent", "drop": "DeMario Douglas (NE WR)"}, {"type": "add/drop", "ts": "Nov 13, 9:29 am", "team": 5, "add": "Colts (Ind DEF)", "addHow": "Free Agent", "drop": "Packers (GB DEF)"}, {"type": "add/drop", "ts": "Nov 12, 9:37 pm", "team": 3, "add": "Dylan Sampson (Cle RB)", "addHow": "Free Agent", "drop": "Ryan Flournoy (Dal WR)"}, {"type": "add/drop", "ts": "Nov 12, 8:04 pm", "team": 5, "add": "Konata Mumpfield (LAR WR)", "addHow": "Free Agent", "drop": "Tutu Atwell (LAR WR)"}, {"type": "add", "ts": "Nov 12, 9:07 am", "team": 5, "add": "Tutu Atwell (LAR WR)", "addHow": "Free Agent"}, {"type": "add", "ts": "Nov 12, 4:12 am", "team": 4, "add": "Bears (Chi DEF)", "addHow": "$0 Waiver"}, {"type": "drop", "ts": "Nov 11, 12:11 pm", "team": 1, "drop": "Alec Pierce (Ind WR)"}, {"type": "add/drop", "ts": "Nov 11, 10:06 am", "team": 7, "add": "Browns (Cle DEF)", "addHow": "Free Agent", "drop": "Aaron Jones Sr. (Min RB)"}, {"type": "add", "ts": "Nov 11, 7:09 am", "team": 3, "add": "DeMario Douglas (NE WR)", "addHow": "Free Agent"}, {"type": "add", "ts": "Nov 11, 5:03 am", "team": 6, "add": "C.J. Stroud (Hou QB)", "addHow": "$0 Waiver"}, {"type": "add/drop", "ts": "Nov 11, 5:03 am", "team": 2, "add": "Hunter Henry (NE TE)", "addHow": "$5 Waiver", "drop": "Brandon Aiyuk (SF WR)"}], "rosters": {"1": [["Josh Allen", "QB", "QB", 230.52, 64.76, "", 7], ["Jonathan Taylor", "RB", "RB", 167.9, 48.4, "", 13], ["Tony Pollard", "RB", "RB", 140.4, 89.1, "", 9], ["Amon-Ra St. Brown", "WR", "WR", 183.4, 79.2, "", 6], ["Luther Burden III", "WR", "WR", 137.3, 63.5, "", 10], ["Tyler Warren", "TE", "TE", 86.5, 16.6, "", 13], ["Jordyn Tyson", "WR", "W/R/T", 24.5, 24.5, "", 8], ["Blake Corum", "RB", "BN", 115.5, 63.1, "", 11], ["Matthew Golden", "WR", "BN", 175.9, 75.2, "", 11], ["Kyren Williams", "RB", "BN", 165.3, 45.8, "", 11], ["Rome Odunze", "WR", "BN", 89.3, 39.6, "", 10], ["Caleb Douglas", "WR", "BN", 70.7, 52.4, "", 6], ["Tucker Kraft", "TE", "BN", 93.3, 36.9, "", 11], ["Tyler Bass", "K", "K", 103.2, 37.2, "", 7], ["Vikings", "DEF", "DEF", 132, 57.5, "", 6]], "2": [["Drake Maye", "QB", "QB", 194.2, 75.18, "D", 11], ["Christian McCaffrey", "RB", "RB", 213.5, 91, "", 8], ["Javonte Williams", "RB", "RB", 167.3, 58.3, "", 14], ["Justin Jefferson", "WR", "WR", 111.6, 47.9, "", 6], ["Chris Olave", "WR", "WR", 147.4, 34.4, "", 8], ["Colston Loveland", "TE", "TE", 83.8, 41.3, "", 10], ["Rhamondre Stevenson", "RB", "W/R/T", 116.2, 51.3, "", 11], ["Hunter Henry", "TE", "BN", 84.3, 30.8, "", 11], ["Malik Washington", "WR", "BN", 89.66, 38.96, "", 6], ["Kaelon Black", "RB", "BN", 52.8, 33, "", 8], ["Tank Dell", "WR", "BN", 31.1, 31.1, "", 8], ["Rachaad White", "RB", "BN", 76.4, 27.6, "", 7], ["Michael Pittman Jr.", "WR", "IR", 15.9, 0, "IR", 9], ["Jordan Addison", "WR", "IR", 53.9, 20.7, "O", 6], ["Jason Myers", "K", "K", 84.2, 20.2, "", 11], ["Ravens", "DEF", "DEF", 62.5, 10.5, "", 13], ["Broncos", "DEF", "BN", 88.5, 20.5, "", 10]], "3": [["Cam Ward", "QB", "QB", 126.16, 53.64, "", 9], ["James Cook III", "RB", "RB", 171.1, 56.5, "", 7], ["Bucky Irving", "RB", "RB", 160.1, 74, "", 10], ["Parker Washington", "WR", "WR", 137.8, 45.9, "", 7], ["DeVonta Smith", "WR", "WR", 69, 0, "Q", 10], ["Isaiah Likely", "TE", "TE", 156.5, 47.2, "", 8], ["Emeka Egbuka", "WR", "W/R/T", 78, 6.9, "", 10], ["Brock Purdy", "QB", "BN", 207.96, 71.96, "", 8], ["Makai Lemon", "WR", "BN", 73.7, 43.5, "", 10], ["KC Concepcion Jr.", "WR", "BN", 100.6, 60.4, "", 11], ["Quinshon Judkins", "RB", "BN", 108.2, 51.9, "", 11], ["Kenny Gainwell", "RB", "BN", 63.6, 33.4, "", 10], ["De'Zhaun Stribling", "WR", "IR", 0, 0, "IR", 8], ["Brandon Aubrey", "K", "K", 98.8, 50, "", 14], ["Buccaneers", "DEF", "DEF", 111, 63, "", 10], ["Rams", "DEF", "BN", 88, 51, "", 11]], "4": [["Kirk Cousins", "QB", "QB", 196.68, 80.6, "", 6], ["Ashton Jeanty", "RB", "RB", 149.7, 49.3, "", 13], ["Breece Hall", "RB", "RB", 69, 26.5, "", 13], ["Tetairoa McMillan", "WR", "WR", 131.5, 41.9, "", 5], ["DJ Moore", "WR", "WR", 79.4, 43.1, "", 7], ["George Kittle", "TE", "TE", 128.2, 38.5, "", 8], ["George Pickens", "WR", "W/R/T", 147.8, 66, "", 14], ["Matthew Stafford", "QB", "BN", 172.62, 60.76, "", 11], ["Braelon Allen", "RB", "BN", 111.1, 54.2, "", 13], ["Josh Downs", "WR", "BN", 90.4, 36.8, "", 5], ["Mike Washington Jr.", "RB", "BN", 41.3, 14.4, "", 13], ["Kyle Monangai", "RB", "BN", 59.3, 0, "Q", 10], ["Fernando Mendoza", "QB", "BN", 16.14, 13.92, "", 13], ["Puka Nacua", "WR", "IR", 174.1, 82.3, "IR", 11], ["Josh Jacobs", "RB", "IR", 43.8, 43.8, "O", 11], ["Ka'imi Fairbairn", "K", "K", 106.9, 37.8, "", 8], ["Bills", "DEF", "DEF", 82.5, 48.5, "", 7]], "5": [["Jared Goff", "QB", "QB", 172.28, 57.28, "", 6], ["Jaylen Warren", "RB", "RB", 150.4, 47.1, "", 9], ["Ollie Gordon II", "RB", "RB", 95.1, 47.1, "", 6], ["Ja'Marr Chase", "WR", "WR", 193.8, 113.9, "", 6], ["Ladd McConkey", "WR", "WR", 51.6, 12.6, "Q", 7], ["Travis Kelce", "TE", "TE", 104.3, 42.4, "", 5], ["Jonah Coleman", "RB", "W/R/T", 62.9, 48.1, "", 10], ["Derrick Henry", "RB", "BN", 161.78, 44.48, "", 13], ["Konata Mumpfield", "WR", "BN", 44.3, 17.6, "", 11], ["Cam Skattebo", "RB", "BN", 98.1, 46.3, "", 8], ["Devaughn Vele", "WR", "BN", 92.9, 23.5, "", 8], ["Omar Cooper Jr.", "WR", "BN", 62.6, 36.3, "Q", 13], ["Michael Wilson", "WR", "IR", 120.68, 49.4, "IR", 14], ["Lamar Jackson", "QB", "IR", 80.58, 0, "IR", 13], ["Will Reichard", "K", "K", 110.2, 35.9, "", 6], ["Steelers", "DEF", "DEF", 98.5, 32, "", 9], ["Colts", "DEF", "BN", 59, 36.5, "", 13]], "6": [["C.J. Stroud", "QB", "QB", 188.48, 74.32, "", 8], ["Bhayshul Tuten", "RB", "RB", 147.5, 59.1, "", 7], ["CeeDee Lamb", "WR", "WR", 222.5, 91.4, "", 14], ["Stefon Diggs", "WR", "WR", 110.6, 41.2, "", 7], ["Dalton Kincaid", "TE", "TE", 93.2, 32.2, "", 7], ["Garrett Wilson", "WR", "W/R/T", 129.8, 35, "", 13], ["Zach Charbonnet", "RB", "BN", 24.9, 24.9, "", 11], ["Jordan Love", "QB", "BN", 203.32, 88.46, "", 11], ["Jordan Mason", "RB", "BN", 32.8, 20.9, "", 6], ["Dallas Goedert", "TE", "BN", 74, 27, "", 10], ["Keenan Allen", "WR", "BN", 92.2, 37.5, "", 8], ["Travis Etienne Jr.", "RB", "BN", 37.3, 6.4, "", 8], ["Cam Little", "K", "K", 106.3, 46.1, "", 7], ["Bears", "DEF", "DEF", 94, 32.5, "", 10], ["Seahawks", "DEF", "BN", 111.5, 46, "", 11]], "7": [["Patrick Mahomes", "QB", "QB", 181.9, 84.84, "", 5], ["Chuba Hubbard", "RB", "RB", 180.8, 82.7, "", 5], ["Kenneth Walker III", "RB", "RB", 196.4, 58.4, "Q", 5], ["Zay Flowers", "WR", "WR", 139.4, 44.9, "", 13], ["Jalen Coker", "WR", "WR", 86.8, 18.9, "", 5], ["Sam LaPorta", "TE", "TE", 95.7, 19.1, "", 6], ["Omarion Hampton", "RB", "W/R/T", 86.7, 28.2, "", 7], ["Jaylen Waddle", "WR", "BN", 82, 26.9, "Q", 10], ["Drake London", "WR", "BN", 138.5, 50.1, "", 11], ["Emmett Johnson", "RB", "BN", 95.9, 73.5, "", 5], ["Caleb Williams", "QB", "BN", 115.34, 52.86, "", 10], ["Denzel Boston", "WR", "BN", 105.3, 33.8, "", 11], ["RJ Harvey", "RB", "IR", 67.4, 14, "IR", 10], ["Roman Wilson", "WR", "IR", 44.8, 0, "IR", 9], ["Chad Ryland", "K", "K", 98.6, 34.2, "", 14], ["Lions", "DEF", "DEF", 81.5, 42, "", 6], ["Browns", "DEF", "BN", 91, 32.5, "", 11]], "8": [["Dak Prescott", "QB", "QB", 208.36, 98.5, "", 14], ["Chase Brown", "RB", "RB", 130.7, 65.2, "", 6], ["David Montgomery", "RB", "RB", 45.5, 0, "", 8], ["Rashee Rice", "WR", "WR", 79.4, 41.4, "", 5], ["Nico Collins", "WR", "WR", 116, 42.5, "", 8], ["Trey McBride", "TE", "TE", 171.5, 68.4, "", 14], ["Jameson Williams", "WR", "W/R/T", 114.7, 57.1, "", 6], ["Saquon Barkley", "RB", "BN", 58.7, 35.7, "", 10], ["Jadarian Price", "RB", "BN", 43.9, 28.9, "", 11], ["Alvin Kamara", "RB", "BN", 90.1, 37.5, "", 8], ["Chris Godwin Jr.", "WR", "BN", 57.9, 11.5, "", 10], ["Marvin Harrison Jr.", "WR", "BN", 37.5, 11.6, "Q", 8], ["Deebo Samuel Sr.", "WR", "BN", 86.8, 25.9, "", 8], ["Evan McPherson", "K", "K", 87, 31.4, "", 6], ["Texans", "DEF", "DEF", 84, 32.5, "", 8]], "9": [["Jayden Daniels", "QB", "QB", 138.46, 52.8, "", 7], ["Jahmyr Gibbs", "RB", "RB", 254.4, 100.2, "", 6], ["Rico Dowdle", "RB", "RB", 50, 31.6, "", 9], ["DK Metcalf", "WR", "WR", 93.3, 24.4, "", 9], ["Carnell Tate", "WR", "WR", 78.3, 10.4, "Q", 9], ["Chig Okonkwo", "TE", "TE", 51.8, 21.8, "", 7], ["Mike Evans", "WR", "W/R/T", 89, 0, "Q", 8], ["Aaron Jones Sr.", "RB", "BN", 95.9, 25.2, "", 6], ["Brock Bowers", "TE", "BN", 150.8, 68.1, "Q", 13], ["Woody Marks", "RB", "BN", 78.4, 25, "D", 8], ["Jaxon Smith-Njigba", "WR", "BN", 263.16, 98.3, "", 11], ["Antonio Williams", "WR", "BN", 72.6, 28.1, "", 7], ["Jeremiyah Love", "RB", "IR", 53.4, 2.3, "IR", 14], ["Davante Adams", "WR", "IR", 102, 0, "IR", 11], ["Spencer Shrader", "K", "K", 123.1, 32, "", 13], ["Jaguars", "DEF", "DEF", 93, 41.5, "", 7]], "10": [["Joe Burrow", "QB", "QB", 238.8, 134.06, "", 6], ["Tyler Allgeier", "RB", "RB", 92.1, 52, "", 14], ["D'Andre Swift", "RB", "RB", 154.8, 50, "", 10], ["Tee Higgins", "WR", "WR", 171.4, 96.1, "", 6], ["Malik Nabers", "WR", "WR", 137.7, 35.3, "", 8], ["T.J. Hockenson", "TE", "TE", 85.8, 36.6, "Q", 6], ["Ryan Flournoy", "WR", "W/R/T", 102.9, 50.5, "", 14], ["Harold Fannin Jr.", "TE", "BN", 119.4, 65.8, "", 11], ["Christian Watson", "WR", "BN", 184.1, 65.3, "", 11], ["Bijan Robinson", "RB", "BN", 197.7, 69.2, "", 11], ["A.J. Brown", "WR", "BN", 23.8, 12.5, "Q", 11], ["Trevor Lawrence", "QB", "BN", 179.46, 61.26, "", 7], ["Brian Robinson Jr.", "RB", "BN", 53.1, 0, "IR", 11], ["J. Croskey-Merritt", "RB", "IR", 44.9, 0, "IR-R", 7], ["Terrance Ferguson", "TE", "IR", 19.3, 0, "IR-R", 11], ["Matt Gay", "K", "K", 103.5, 35.3, "", 13], ["Chiefs", "DEF", "DEF", 91, 38, "", 5]]}, "trades": [{"ts": "Nov 18, 12:15 pm", "legs": [{"to": 2, "players": ["Tank Dell (Hou WR)", "Rachaad White (Was RB)"]}, {"to": 9, "players": ["Rico Dowdle (Pit RB)"]}]}, {"ts": "Nov 16, 12:04 pm", "legs": [{"to": 3, "players": ["Makai Lemon (Phi WR)"]}, {"to": 1, "players": ["Tucker Kraft (GB TE)"]}]}, {"ts": "Oct 28, 5:27 pm", "legs": [{"to": 1, "players": ["Luther Burden III (Chi WR)", "Matthew Golden (GB WR)", "Tyler Warren (Ind TE)"]}, {"to": 7, "players": ["Sam LaPorta (Det TE)", "Denzel Boston (Cle WR)", "Drake London (Atl WR)"]}]}, {"ts": "Oct 23, 8:40 pm", "legs": [{"to": 3, "players": ["Kenny Gainwell (TB RB)", "Bucky Irving (TB RB)"]}, {"to": 8, "players": ["Chase Brown (Cin RB)"]}]}, {"ts": "Oct 23, 10:53 am", "legs": [{"to": 4, "players": ["George Pickens (Dal WR)", "Kyle Monangai (Chi RB)"]}, {"to": 5, "players": ["Jaylen Warren (Pit RB)", "Ollie Gordon II (Mia RB)"]}]}, {"ts": "Oct 21, 5:22 pm", "legs": [{"to": 7, "players": ["TreVeyon Henderson (NE RB)"]}, {"to": 5, "players": ["Travis Kelce (KC TE)"]}]}, {"ts": "Oct 20, 9:02 pm", "legs": [{"to": 6, "players": ["CeeDee Lamb (Dal WR)", "Dallas Goedert (Phi TE)", "Dalton Kincaid (Buf TE)"]}, {"to": 8, "players": ["Nico Collins (Hou WR)", "Trey McBride (Ari TE)"]}]}, {"ts": "Oct 20, 10:49 am", "legs": [{"to": 9, "players": ["Davante Adams (LAR WR)", "Jaxon Smith-Njigba (Sea WR)", "Mike Evans (SF WR)"]}, {"to": 6, "players": ["Jordan Mason (Min RB)", "Nico Collins (Hou WR)", "Garrett Wilson (NYJ WR)", "Stefon Diggs (Was WR)"]}]}, {"ts": "Oct 16, 7:32 pm", "legs": [{"to": 3, "players": ["KC Concepcion Jr. (Cle WR)"]}, {"to": 1, "players": ["Blake Corum (LAR RB)"]}]}, {"ts": "Oct 13, 11:30 am", "legs": [{"to": 1, "players": ["Jonathan Taylor (Ind RB)", "Rome Odunze (Chi WR)", "RJ Harvey (Den RB)", "Josh Allen (Buf QB)"]}, {"to": 8, "players": ["Jameson Williams (Det WR)", "Saquon Barkley (Phi RB)", "Bucky Irving (TB RB)", "Dak Prescott (Dal QB)", "Kenny Gainwell (TB RB)"]}]}, {"ts": "Oct 6, 8:50 am", "legs": [{"to": 10, "players": ["Brian Robinson Jr. (Atl RB)", "Harold Fannin Jr. (Cle TE)"]}, {"to": 1, "players": ["Tony Pollard (Ten RB)", "Denzel Boston (Cle WR)"]}]}, {"ts": "Oct 3, 3:28 pm", "legs": [{"to": 3, "players": ["Emmett Johnson (KC RB)"]}, {"to": 9, "players": ["Jayden Daniels (Was QB)"]}]}, {"ts": "Oct 1, 4:57 pm", "legs": [{"to": 5, "players": ["Devaughn Vele (NO WR)"]}, {"to": 1, "players": ["J.K. Dobbins (Den RB)"]}]}, {"ts": "Oct 1, 1:33 pm", "legs": [{"to": 8, "players": ["Jadarian Price (Sea RB)"]}, {"to": 1, "players": ["Kenny Gainwell (TB RB)"]}]}]}</script>
+<script>
+function main(D){
+const ME = '10';
+const T = Object.keys(D.teams);
+const COLORS = ['#e8a317','#3b82f6','#8b5cf6','#16a34a','#ef4444','#ec4899','#0ea5e9','#a16207','#f97316','#14b8a6','#6366f1','#84cc16'];
+const shade=(hex,f)=>{const n=parseInt(hex.slice(1),16); const r=n>>16,g=n>>8&255,b=n&255; return `rgb(${Math.round(r*(1-f))},${Math.round(g*(1-f))},${Math.round(b*(1-f))})`;};
+const color = id => COLORS[(+id-1)%COLORS.length];
+const nm = id => D.teams[id].name;
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const initials = s => s.replace(/[^A-Za-z0-9 ]/g,'').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+const tp = id => `<span class="tp" style="background:${color(id)}1f;color:${shade(color(id),0.42)};box-shadow:inset 0 0 0 1px ${color(id)}55">${esc(nm(id))}</span>`;
+const teamCell = (id, opts={}) => `<div class="team ${id===ME?'me':''}"><span class="badge" style="background:${color(id)}">${initials(nm(id))}</span><div style="min-width:0"><div class="tname">${esc(nm(id))}</div>${opts.mgr!==false?`<div class="mgr">${esc(D.teams[id].mgr)}</div>`:''}</div></div>`;
+const pct = (p,d=0) => p>=0.9995&&p<1?'>99%':(p>0&&p<0.0005?'<1%':(p*100).toFixed(d)+'%');
+const f1 = x => x.toFixed(1), f2 = x => x.toFixed(2);
+const sgn = (x,d=1) => (x>0?'+':x<0?'−':'')+Math.abs(x).toFixed(d);
+
+// ---------- season data ----------
+const weeks = Object.keys(D.weeks).map(Number).sort((a,b)=>a-b);
+const regWeeks = weeks.filter(w=>w<=D.league.regWeeks);
+const finals = regWeeks.filter(w=>D.weeks[w].final);
+const remaining = regWeeks.filter(w=>!D.weeks[w].final);
+const curWeek = remaining.length ? remaining[0] : regWeeks[regWeeks.length-1];
+const rec = {}; T.forEach(t=>rec[t]={w:0,l:0,t:0,pf:0,pa:0,scores:[],res:[],opp:[]});
+for(const w of finals) for(let [a,b,ap,bp] of D.weeks[w].games){
+  a=String(a); b=String(b);
+  rec[a].pf+=ap; rec[a].pa+=bp; rec[b].pf+=bp; rec[b].pa+=ap;
+  rec[a].scores.push(ap); rec[b].scores.push(bp); rec[a].opp.push(b); rec[b].opp.push(a);
+  if(ap>bp){rec[a].w++;rec[b].l++;rec[a].res.push('W');rec[b].res.push('L');}
+  else if(bp>ap){rec[b].w++;rec[a].l++;rec[a].res.push('L');rec[b].res.push('W');}
+  else {rec[a].t++;rec[b].t++;rec[a].res.push('T');rec[b].res.push('T');}
+}
+const streak = t => {const r=rec[t].res; if(!r.length) return '—'; const last=r[r.length-1]; let n=0; for(let i=r.length-1;i>=0&&r[i]===last;i--) n++; return last+n;};
+const rankOrder = (wins, pf) => T.slice().sort((a,b)=> (wins[b]-wins[a]) || (pf[b]-pf[a]));
+const curOrder = rankOrder(Object.fromEntries(T.map(t=>[t,rec[t].w+rec[t].t*0.5])), Object.fromEntries(T.map(t=>[t,rec[t].pf])));
+const curSeed = Object.fromEntries(curOrder.map((t,i)=>[t,i+1]));
+
+// all-play
+const allPlay = {}; T.forEach(t=>allPlay[t]={w:0,l:0});
+for(const w of finals){
+  const sc = []; for(const [a,b,ap,bp] of D.weeks[w].games){sc.push([String(a),ap]);sc.push([String(b),bp]);}
+  for(const [t,s] of sc) for(const [u,v] of sc) if(t!==u){ if(s>v) allPlay[t].w++; else if(s<v) allPlay[t].l++; }
+}
+const allScores = finals.flatMap(w=>D.weeks[w].games.flatMap(g=>[g[2],g[3]]));
+const mean = a => a.reduce((x,y)=>x+y,0)/a.length;
+const sd = a => {const m=mean(a); return Math.sqrt(a.reduce((x,y)=>x+(y-m)**2,0)/(a.length-1));};
+const LM = mean(allScores), LSD = sd(allScores);
+
+// ---------- model ----------
+function model(t, w, proj){
+  const s = rec[t].scores; const avg = s.length?mean(s):LM;
+  const recent = s.length>=3? mean(s.slice(-3)) : avg;
+  const base = 0.7*avg + 0.3*recent;
+  const wp = w===curWeek ? 0.5 : 0.3;
+  const mu = proj>0 ? (1-wp)*base + wp*proj : base;
+  const tsd = s.length>2? sd(s) : LSD;
+  return {mu, sd: 0.5*tsd + 0.5*LSD};
+}
+const Phi = x => { const t=1/(1+0.2316419*Math.abs(x)); const d=0.3989423*Math.exp(-x*x/2); const p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274)))); return x>0?1-p:p; };
+const remGames = []; // {w,a,b,ma,mb,pa}
+for(const w of remaining) for(const g of D.weeks[w].games){
+  const a=String(g[0]), b=String(g[1]); const ma=model(a,w,g[4]), mb=model(b,w,g[5]);
+  remGames.push({w,a,b,ma,mb,pa:Phi((ma.mu-mb.mu)/Math.sqrt(ma.sd**2+mb.sd**2)),projA:g[4],projB:g[5]});
+}
+
+// ---------- simulation ----------
+const N = remGames.length ? 20000 : 1;
+document.getElementById('nsims').textContent = N.toLocaleString();
+const P = D.league.playoffTeams, BYE = D.league.byes;
+const idx = Object.fromEntries(T.map((t,i)=>[t,i])); const nT=T.length, G=remGames.length;
+const cPO=new Float64Array(nT), cBye=new Float64Array(nT), cOne=new Float64Array(nT), cLast=new Float64Array(nT);
+const seedCt = T.map(()=>new Float64Array(nT));
+const winsDist = T.map(()=>({})); // finalWins -> [count, playoffCount]
+const gA = new Float64Array(G); const gPO = [...Array(G)].map(()=>[new Float64Array(nT),new Float64Array(nT)]);
+const randn = (()=>{let s=null; return ()=>{ if(s!==null){const r=s;s=null;return r;} let u,v,q; do{u=Math.random()*2-1;v=Math.random()*2-1;q=u*u+v*v;}while(q>=1||q===0); const m=Math.sqrt(-2*Math.log(q)/q); s=v*m; return u*m; };})();
+const baseW = T.map(t=>rec[t].w+0.5*rec[t].t), basePF = T.map(t=>rec[t].pf);
+const wins=new Float64Array(nT), pf=new Float64Array(nT), outA=new Uint8Array(G), order=[...Array(nT).keys()];
+for(let s=0;s<N;s++){
+  for(let i=0;i<nT;i++){wins[i]=baseW[i];pf[i]=basePF[i];}
+  for(let g=0;g<G;g++){const r=remGames[g]; const ia=idx[r.a], ib=idx[r.b];
+    const sa=r.ma.mu+r.ma.sd*randn(), sb=r.mb.mu+r.mb.sd*randn();
+    pf[ia]+=sa; pf[ib]+=sb; if(sa>sb){wins[ia]++;outA[g]=1;} else {wins[ib]++;outA[g]=0;}}
+  order.sort((x,y)=>(wins[y]-wins[x])||(pf[y]-pf[x]));
+  const made = new Uint8Array(nT);
+  for(let k=0;k<nT;k++){const i=order[k]; seedCt[i][k]++; if(k<P){cPO[i]++;made[i]=1;} if(k<BYE)cBye[i]++; }
+  cOne[order[0]]++; cLast[order[nT-1]]++;
+  for(let i=0;i<nT;i++){const d=winsDist[i]; const k=wins[i]; (d[k]=d[k]||[0,0])[0]++; if(made[i]) d[k][1]++;}
+  for(let g=0;g<G;g++){ if(outA[g]) gA[g]++; const arr=gPO[g][outA[g]?0:1]; for(let i=0;i<nT;i++) if(made[i]) arr[i]++; }
+}
+const odds = Object.fromEntries(T.map((t,i)=>[t,{po:cPO[i]/N,bye:cBye[i]/N,one:cOne[i]/N,last:cLast[i]/N,seeds:[...seedCt[i]].map(c=>c/N)}]));
+// per-game conditional odds
+const gameImpact = remGames.map((r,g)=>{
+  const nA=gA[g], nB=N-gA[g];
+  const cond = T.map((t,i)=>({t, ifA: nA? gPO[g][0][i]/nA : odds[t].po, ifB: nB? gPO[g][1][i]/nB : odds[t].po}));
+  const stakes = cond.reduce((s,c)=>s+Math.abs(c.ifA-c.ifB),0);
+  return {...r, cond, stakes, simPA: nA/N};
+});
+
+// ---------- exact clinch / elimination (wins only, PF ties treated as unknown) ----------
+const statusOf = {}; T.forEach(t=>statusOf[t]='');
+if(G<=22){
+  const ga=remGames.map(r=>idx[r.a]), gb=remGames.map(r=>idx[r.b]);
+  const canMiss=new Uint8Array(nT), canMissBye=new Uint8Array(nT), canMake=new Uint8Array(nT);
+  const w=new Float64Array(nT);
+  for(let m=0;m<(1<<G);m++){
+    for(let i=0;i<nT;i++) w[i]=baseW[i];
+    for(let g=0;g<G;g++){ if(m>>g&1) w[ga[g]]++; else w[gb[g]]++; }
+    for(let i=0;i<nT;i++){ let ge=0, gt=0; for(let j=0;j<nT;j++) if(j!==i){ if(w[j]>=w[i]) ge++; if(w[j]>w[i]) gt++; }
+      if(ge>=P) canMiss[i]=1; if(ge>=BYE) canMissBye[i]=1; if(gt<P) canMake[i]=1; }
+  }
+  T.forEach((t,i)=>{ statusOf[t] = !canMissBye[i]?'y':!canMiss[i]?'x':!canMake[i]?'e':''; });
+}
+const stBadge = t => statusOf[t]?`<span class="status st-${statusOf[t]}">${statusOf[t].toUpperCase()}</span>`:'';
+
+// ---------- HERO ----------
+document.getElementById('lid').textContent = D.league.id;
+const upd = new Date(D.updated);
+const updStr = upd.toLocaleString('en-US',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+const weeksLeft = remaining.length;
+document.getElementById('heroSub').textContent = weeksLeft
+  ? `Week ${curWeek} is up next. ${weeksLeft} regular-season week${weeksLeft>1?'s':''} left, ${P} playoff spots, and ${T.filter(t=>odds[t].po>0.02&&odds[t].po<0.98).length} teams still in a real fight for them.`
+  : `The regular season is complete. Here's how it shook out.`;
+document.getElementById('heroMeta').innerHTML = [
+  `Updated <b>${updStr}</b>`, `Week <b>${curWeek}</b>`, `Leader <b>${esc(nm(curOrder[0]))}</b>`, `Playoffs <b>Wk 15–17</b>`, `Deadline <b>${esc(D.league.tradeDeadline)}</b>`
+].map(x=>`<span class="chip">${x}</span>`).join('');
+document.getElementById('footUpd').textContent = `Last refresh: ${updStr}.`;
+document.getElementById('deadline').textContent = D.league.tradeDeadline;
+
+// ---------- STANDINGS ----------
+(function(){
+  let h=`<thead><tr><th class="l">#</th><th class="l">Team</th><th>W-L</th><th>PF</th><th>PA</th><th>Diff</th><th>Strk</th><th>All-play</th><th class="l">Playoffs</th><th class="l">Bye</th><th>#1 seed</th><th>Proj W</th></tr></thead><tbody>`;
+  curOrder.forEach((t,i)=>{
+    const r=rec[t], o=odds[t]; const ap=allPlay[t];
+    const expW = Object.entries(winsDist[idx[t]]).reduce((s,[k,v])=>s+(+k)*v[0],0)/N;
+    h+=`<tr class="${i===P-1?'cutline':''}"><td class="l tstrip" style="border-left-color:${color(t)}"><span class="seed" style="color:${i<BYE?'var(--gold-t)':i<P?'var(--turf-t)':'var(--dim)'}">${i+1}</span></td>
+    <td class="l" style="min-width:200px"><div style="display:flex;align-items:center">${teamCell(t)}${stBadge(t)}</div></td>
+    <td class="num">${r.w}-${r.l}${r.t?'-'+r.t:''}</td><td class="num">${f2(r.pf)}</td><td class="num muted">${f2(r.pa)}</td>
+    <td class="num ${r.pf-r.pa>=0?'pos':'neg'}">${sgn(r.pf-r.pa)}</td><td class="num">${streak(t)}</td>
+    <td class="num muted">${ap.w}-${ap.l}</td>
+    <td class="l"><div class="bar"><i style="width:${o.po*100}%"></i><span>${pct(o.po)}</span></div></td>
+    <td class="l"><div class="bar b2"><i style="width:${o.bye*100}%"></i><span>${pct(o.bye)}</span></div></td>
+    <td class="num">${pct(o.one)}</td><td class="num muted">${f1(expW)}</td></tr>`;
+  });
+  document.getElementById('standTbl').innerHTML = h+'</tbody>';
+})();
+
+// ---------- THIS WEEK ----------
+(function(){
+  const wk = D.weeks[curWeek]; const isFinal = wk.final;
+  document.getElementById('twTitle').textContent = `Week ${curWeek} ${isFinal?'Results':'Preview'}`;
+  document.getElementById('twLede').textContent = isFinal ? 'Final scores from the last week of the regular season.' :
+    `Win chances come from the model (season form blended with Yahoo's projections). Stakes is how much this game moves the league's playoff odds.`;
+  const thisImp = gameImpact.filter(g=>g.w===curWeek);
+  const maxSt = Math.max(...gameImpact.map(g=>g.stakes), 0.0001);
+  let h='';
+  wk.games.forEach(g=>{
+    const a=String(g[0]), b=String(g[1]); const gi=thisImp.find(x=>x.a===a&&x.b===b);
+    const live = g[2]>0||g[3]>0;
+    const pa = gi?gi.pa:0.5;
+    const fl = gi? (gi.stakes>=0.6*maxSt?'hot':gi.stakes>=0.3*maxSt?'':'cool') : 'cool';
+    const swingA = gi? gi.cond.find(c=>c.t===a):null, swingB = gi? gi.cond.find(c=>c.t===b):null;
+    h+=`<div class="mu">
+      <div class="side">${teamCell(a)}<div class="muted" style="font-size:12px">${rec[a].w}-${rec[a].l} · #${curSeed[a]} · proj ${f1(g[4])}</div></div>
+      <div class="vs">${live?`<div class="score ${g[2]>g[3]?'win':''}">${f2(g[2])}</div><div style="margin:6px 0">—</div><div class="score ${g[3]>g[2]?'win':''}">${f2(g[3])}</div>`:'VS'}</div>
+      <div class="side r">${teamCell(b)}<div class="muted" style="font-size:12px">${rec[b].w}-${rec[b].l} · #${curSeed[b]} · proj ${f1(g[5])}</div></div>
+      ${gi?`<div class="wp" title="Win chance"><i style="width:${pa*100}%;background:${color(a)}"></i><i style="flex:1;background:${color(b)}"></i></div>
+      <div class="stake"><span><b>${pct(pa)}</b> win chance</span>
+        <span class="flame ${fl}">Stakes ${(gi.stakes*100).toFixed(0)} pts</span>
+        <span><b>${pct(1-pa)}</b> win chance</span></div>
+      <div class="stake" style="font-size:11.5px"><span>Playoff odds: win ${pct(swingA.ifA)} / lose ${pct(swingA.ifB)}</span><span>win ${pct(swingB.ifB)} / lose ${pct(swingB.ifA)}</span></div>`:''}
+    </div>`;
+  });
+  document.getElementById('twList').innerHTML = h;
+})();
+
+// ---------- MATCHUPS THAT MATTER ----------
+(function(){
+  const sel=document.getElementById('stakesSel'), tbl=document.getElementById('stakesTbl'), note=document.getElementById('stakesNote');
+  if(!gameImpact.length){sel.style.display='none';tbl.innerHTML='<tr><td class="l pad muted">The regular season is over, so there are no games left to swing the race.</td></tr>';return;}
+  const wks=[...new Set(gameImpact.map(g=>g.w))];
+  sel.innerHTML=`<option value="top">Top 10 · rest of season</option>`+wks.map(w=>`<option value="${w}">Week ${w}${w===curWeek?' (this week)':''}</option>`).join('');
+  const maxSt=Math.max(...gameImpact.map(g=>g.stakes));
+  const fans=(g,forA)=>g.cond.filter(c=>c.t!==g.a&&c.t!==g.b).map(c=>({t:c.t,d:(c.ifA-c.ifB)*(forA?1:-1)})).filter(x=>x.d>=0.01).sort((x,y)=>y.d-x.d).slice(0,4);
+  const fanLine=list=>list.length?list.map(x=>`<span style="white-space:nowrap"><span class="dot" style="background:${color(x.t)}"></span>${esc(nm(x.t))} <b class="pos">+${(x.d*100).toFixed(0)}</b></span>`).join(' &nbsp;·&nbsp; '):'<span class="dim">nobody else much</span>';
+  function render(){
+    const v=sel.value||'top';
+    let list=gameImpact.slice().sort((x,y)=>y.stakes-x.stakes);
+    if(v==='top'){list=list.slice(0,10); note.textContent='The 10 biggest regular-season games left, across every week.';}
+    else {list=list.filter(g=>g.w===+v); note.textContent=`All ${list.length} games in Week ${v}, biggest first.`;}
+    let h=`<thead><tr><th class="l">#</th><th class="l">Wk</th><th class="l">Matchup</th><th>Win chance</th><th class="l">Stakes</th><th class="l">Who else is rooting for whom</th></tr></thead><tbody>`;
+    list.forEach((g,i)=>{
+      const cA=g.cond.find(c=>c.t===g.a), cB=g.cond.find(c=>c.t===g.b);
+      h+=`<tr><td class="l num gold" style="font-size:16px">${i+1}</td><td class="l num">${g.w}</td>
+      <td class="l" style="min-width:230px">
+        <div style="display:flex;flex-direction:column;gap:6px">${teamCell(g.a,{mgr:false})}${teamCell(g.b,{mgr:false})}</div>
+        <div class="dim" style="font-size:12px;margin-top:6px">Own playoff odds, win vs lose: ${esc(nm(g.a))} ${pct(cA.ifA)} / ${pct(cA.ifB)} · ${esc(nm(g.b))} ${pct(cB.ifB)} / ${pct(cB.ifA)}</div></td>
+      <td class="num" style="line-height:2.4">${pct(g.pa)}<br>${pct(1-g.pa)}</td>
+      <td class="l"><div class="bar" style="width:110px;margin-top:8px"><i style="width:${g.stakes/maxSt*100}%;background:linear-gradient(90deg,#ffc79a,#ff8f4a)"></i><span>${(g.stakes*100).toFixed(0)}</span></div></td>
+      <td class="who"><div><span class="lab">If ${esc(nm(g.a))} wins</span><br>${fanLine(fans(g,true))}</div><div style="margin-top:8px"><span class="lab">If ${esc(nm(g.b))} wins</span><br>${fanLine(fans(g,false))}</div></td></tr>`;
+    });
+    tbl.innerHTML=h+'</tbody>';
+  }
+  sel.addEventListener('change',render); render();
+})();
+
+// ---------- ROOTING GUIDE ----------
+(function(){
+  const sel = document.getElementById('rootSel');
+  let saved=null; try{saved=localStorage.getItem('wffl-root');}catch(e){}
+  sel.innerHTML = curOrder.map(t=>`<option value="${t}">${esc(nm(t))} (${esc(D.teams[t].mgr)})</option>`).join('');
+  sel.value = saved && D.teams[saved] ? saved : curOrder[0];
+  function render(){
+    const t = sel.value; try{localStorage.setItem('wffl-root',t);}catch(e){}
+    const o = odds[t], r = rec[t]; const i=idx[t];
+    const dist = Object.entries(winsDist[i]).map(([k,v])=>({w:+k,p:v[0]/N,po:v[1]/v[0]})).sort((x,y)=>y.w-x.w);
+    const totalW = r.w+remaining.length;
+    let h=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">${teamCell(t)}${stBadge(t)}</div>
+    <div class="kpis" style="margin-top:14px">
+      <div class="kpi"><div class="k">Playoff odds</div><div class="v ${o.po>.5?'pos':'neg'}">${pct(o.po)}</div><div class="s">currently #${curSeed[t]}</div></div>
+      <div class="kpi"><div class="k">Bye odds</div><div class="v gold">${pct(o.bye)}</div><div class="s">top-2 finish</div></div>
+      <div class="kpi"><div class="k">Last place</div><div class="v">${pct(o.last)}</div><div class="s">dodge the basement</div></div>
+    </div>`;
+    if(remaining.length){
+      h+=`<div style="margin-top:16px" class="k muted" ><b>Playoff odds by final record</b> <span class="dim">(how often each record happens)</span></div>
+      <div class="dist">${dist.map(d=>`<div><div class="r">${d.w}-${(regWeeks.length)-d.w}</div><div class="p ${d.po>.75?'pos':d.po<.25?'neg':'gold'}">${pct(d.po)}</div><div class="f">${pct(d.p)} likely</div></div>`).join('')}</div>`;
+      const curG = gameImpact.filter(g=>g.w===curWeek&&(g.a===t||g.b===t))[0];
+      if(curG){const c=curG.cond.find(x=>x.t===t); const iA=curG.a===t; const w=iA?c.ifA:c.ifB, l=iA?c.ifB:c.ifA;
+        h+=`<div style="margin-top:16px;padding:12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line)"><div class="k muted" style="font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.06em">This week vs ${esc(nm(iA?curG.b:curG.a))}</div>
+        <div style="display:flex;gap:18px;margin-top:6px;flex-wrap:wrap"><div>Win → <b class="pos">${pct(w)}</b></div><div>Lose → <b class="neg">${pct(l)}</b></div><div class="muted">Swing: ${((w-l)*100).toFixed(0)} pts</div></div></div>`;}
+    }
+    document.getElementById('rootSummary').innerHTML = h;
+    // games list: all remaining games, ordered by impact on this team
+    const rows = gameImpact.map(g=>{const c=g.cond.find(x=>x.t===t); return {g, d:c.ifA-c.ifB, c};}).sort((x,y)=>(x.g.w-y.g.w)||(Math.abs(y.d)-Math.abs(x.d)));
+    let lh = `<div class="pad" style="border-bottom:1px solid var(--line)"><b>Who to root for</b> <span class="muted">· every remaining game</span></div>`;
+    if(!rows.length) lh+='<div class="pad muted">No regular-season games left.</div>';
+    let lastW=null;
+    rows.forEach(({g,d})=>{
+      if(g.w!==lastW){lh+=`<div style="padding:8px 16px;font:600 11px var(--mono);color:var(--dim);background:var(--panel2);text-transform:uppercase;letter-spacing:.08em">Week ${g.w}</div>`;lastW=g.w;}
+      const own = g.a===t||g.b===t; const pickT = d>=0?g.a:g.b; const other = pickT===g.a?g.b:g.a;
+      const mag = Math.abs(d)*100;
+      lh+=`<div class="root"><div><span class="pick" style="color:${color(pickT)}">${own?'Win':'Root for '+esc(nm(pickT))}</span> <span class="muted">${own?'vs '+esc(nm(other)):'over '+esc(nm(other))}</span></div>
+        <div class="delta ${mag<2?'small':''}">${mag<0.5?'no effect':'+'+mag.toFixed(mag<10?1:0)+' pts'}</div></div>`;
+    });
+    document.getElementById('rootList').innerHTML = lh;
+  }
+  sel.addEventListener('change',render); render();
+})();
+
+// ---------- BRACKET ----------
+(function(){
+  const s = curOrder; const slot=(t,k)=>`<div class="bslot"><span class="seed">${k}</span>${teamCell(t,{mgr:false})}</div>`;
+  document.getElementById('bracketBox').innerHTML = `
+    <div><div class="blabel">First-round byes</div>${slot(s[0],1)}${slot(s[1],2)}</div>
+    <div><div class="blabel">Week 15 · Quarterfinals</div>${slot(s[2],3)}<div class="dim" style="text-align:center;font:600 11px var(--mono)">vs</div>${slot(s[5],6)}<div style="height:10px"></div>${slot(s[3],4)}<div class="dim" style="text-align:center;font:600 11px var(--mono)">vs</div>${slot(s[4],5)}</div>
+    <div><div class="blabel">On the outside</div>${s.slice(P).map((t,i)=>slot(t,P+i+1)).join('')}</div>`;
+  // most likely seed per team
+  const out = curOrder.map(t=>{const sd=odds[t].seeds; const best=sd.indexOf(Math.max(...sd)); return {t,best,p:sd[best],sd};});
+  document.getElementById('seedOdds').innerHTML = out.map(o=>`<div class="card pad">${teamCell(o.t,{mgr:false})}
+    <div style="display:flex;gap:2px;margin-top:10px;height:34px;align-items:flex-end">${o.sd.map((p,k)=>`<div title="Seed ${k+1}: ${pct(p)}" style="flex:1;height:${Math.max(2,p*100)}%;background:${k<BYE?'var(--gold)':k<P?'var(--turf)':'#c7ced8'};border-radius:2px 2px 0 0;opacity:${0.35+0.65*Math.min(1,p*3)}"></div>`).join('')}</div>
+    <div style="display:flex;justify-content:space-between;font:500 10px var(--mono);color:var(--dim);margin-top:3px"><span>1</span><span>seed</span><span>${nT}</span></div>
+    <div class="muted" style="font-size:12px;margin-top:6px">Most likely: <b style="color:var(--text)">#${o.best+1}</b> (${pct(o.p)})</div></div>`).join('');
+})();
+
+// ---------- POWER RANKINGS ----------
+function powerFor(weekList){
+  const ap={}, sc={}, wr={};
+  T.forEach(t=>{ap[t]=[0,0];sc[t]=[];wr[t]=[0,0];});
+  for(const w of weekList){ const arr=[]; for(const [a,b,x,y] of D.weeks[w].games){arr.push([String(a),x]);arr.push([String(b),y]); wr[String(a)][x>y?0:1]++; wr[String(b)][y>x?0:1]++;}
+    for(const [t,s] of arr){ sc[t].push(s); for(const [u,v] of arr) if(t!==u){ if(s>v) ap[t][0]++; else ap[t][1]++; } } }
+  const recent = Object.fromEntries(T.map(t=>[t,mean(sc[t].slice(-3))]));
+  const rv = Object.values(recent), rmin=Math.min(...rv), rmax=Math.max(...rv);
+  const score = Object.fromEntries(T.map(t=>{const apw=ap[t][0]/Math.max(1,ap[t][0]+ap[t][1]); const rn=(recent[t]-rmin)/Math.max(1,rmax-rmin); const w=wr[t][0]/Math.max(1,wr[t][0]+wr[t][1]); return [t,0.5*apw+0.3*rn+0.2*w];}));
+  const order = T.slice().sort((a,b)=>score[b]-score[a]);
+  return {order, score, recent, ap};
+}
+(function(){
+  if(!finals.length) return;
+  const now = powerFor(finals), prev = finals.length>1? powerFor(finals.slice(0,-1)) : now;
+  const prevRank = Object.fromEntries(prev.order.map((t,i)=>[t,i+1]));
+  let h=`<thead><tr><th class="l">Rk</th><th class="l">Move</th><th class="l">Team</th><th>Power</th><th>Record</th><th>All-play</th><th>Exp W</th><th>Luck</th><th>Last 3 avg</th><th>Season avg</th><th>High</th><th>Low</th></tr></thead><tbody>`;
+  now.order.forEach((t,i)=>{
+    const ap=allPlay[t]; const games=rec[t].scores.length; const expW = ap.w/Math.max(1,ap.w+ap.l)*games; const luck = rec[t].w-expW;
+    const mv = prevRank[t]-(i+1);
+    h+=`<tr><td class="l"><span class="seed gold">${i+1}</span></td><td class="l num ${mv>0?'pos':mv<0?'neg':'dim'}">${mv>0?'▲'+mv:mv<0?'▼'+(-mv):'—'}</td><td class="l" style="min-width:200px">${teamCell(t)}</td>
+    <td class="num">${(now.score[t]*100).toFixed(1)}</td><td class="num">${rec[t].w}-${rec[t].l}</td><td class="num">${ap.w}-${ap.l}</td><td class="num muted">${f1(expW)}</td>
+    <td class="num ${luck>0.5?'pos':luck<-0.5?'neg':'muted'}">${sgn(luck)}</td><td class="num">${f1(now.recent[t])}</td><td class="num muted">${f1(mean(rec[t].scores))}</td>
+    <td class="num">${f2(Math.max(...rec[t].scores))}</td><td class="num muted">${f2(Math.min(...rec[t].scores))}</td></tr>`;
+  });
+  document.getElementById('powerTbl').innerHTML = h+'</tbody>';
+  window.__power = now;
+})();
+
+// ---------- TRADES & NEEDS ----------
+(function(){
+  const R=D.rosters; if(!R){document.getElementById('trades').style.display='none';return;}
+  const nFin=finals.length, last4=finals.slice(-4);
+  const OUT=new Set(['IR','IR-R','O','PUP-R','PUP-P','NFI-R','NFI-A','SUSP','NA']);
+  const val=p=>{const [n,pos,slot,pts,l4,inj,bye]=p; const gp=Math.max(1,nFin-(bye&&bye<=finals[nFin-1]?1:0)); const g4=Math.max(1,4-(last4.includes(bye)?1:0)); return 0.5*pts/gp+0.5*l4/g4;};
+  const byName={}; Object.entries(R).forEach(([t,ps])=>ps.forEach(p=>byName[p[0]]={t,p,v:val(p)}));
+  const POS=['QB','RB','WR','TE'], SLOTS={QB:1,RB:2,WR:2,TE:1};
+  const avail=t=>R[t].filter(p=>!OUT.has(p[5])).map(p=>({n:p[0],pos:p[1],v:val(p)}));
+  // starter strength per position
+  const str={}, all={QB:[],RB:[],WR:[],TE:[]};
+  T.forEach(t=>{const ps=avail(t); str[t]={};
+    POS.forEach(pos=>{const v=ps.filter(p=>p.pos===pos).map(p=>p.v).sort((a,b)=>b-a); str[t][pos]=v.slice(0,SLOTS[pos]).reduce((a,b)=>a+b,0)/SLOTS[pos]; all[pos].push(...v);});
+    // flex: best 3rd RB/WR/2nd TE folded into RB/WR depth
+  });
+  // startable line: Nth best player at each position league-wide
+  const LINE={}; const N={QB:10,RB:25,WR:25,TE:10};
+  POS.forEach(pos=>{const s=all[pos].slice().sort((a,b)=>b-a); LINE[pos]=s[Math.min(s.length-1,N[pos]-1)]||0;});
+  const label={}, deep={};
+  POS.forEach(pos=>{const order=T.slice().sort((a,b)=>str[b][pos]-str[a][pos]); order.forEach((t,i)=>{(label[t]=label[t]||{})[pos]=i<3?'strong':i>=7?'weak':'ok';});});
+  T.forEach(t=>{const ps=avail(t); deep[t]=POS.filter(pos=>{const c=ps.filter(p=>p.pos===pos&&p.v>=LINE[pos]).length; return pos==='RB'||pos==='WR'? c>=4 : c>=2;});});
+  const needs=t=>POS.filter(pos=>label[t][pos]==='weak');
+  const partners=t=>{const nd=needs(t); return T.filter(u=>u!==t&&nd.some(pos=>deep[u].includes(pos))).map(u=>({u,mutual:needs(u).some(pos=>deep[t].includes(pos))})).sort((a,b)=>b.mutual-a.mutual);};
+  const LBL={strong:'Strong',ok:'OK',weak:'Need'};
+  let h=`<thead><tr><th class="l">Team</th>${POS.map(p=>`<th class="l">${p}</th>`).join('')}<th class="l">Deep at</th><th class="l">Teams deep where they need help</th></tr></thead><tbody>`;
+  curOrder.forEach(t=>{const pr=partners(t);
+    h+=`<tr><td class="l" style="min-width:200px">${teamCell(t)}</td>${POS.map(p=>`<td class="l"><span class="need ${label[t][p]}">${LBL[label[t][p]]}</span></td>`).join('')}
+    <td class="l">${deep[t].length?deep[t].map(p=>`<span class="deep">${p}</span>`).join(''):'<span class="dim">—</span>'}</td>
+    <td class="l" style="white-space:normal;min-width:220px;font-size:13px">${!needs(t).length?'<span class="dim">No glaring needs</span>':pr.length?pr.map(x=>`<span style="white-space:nowrap"><span class="dot" style="background:${color(x.u)}"></span>${esc(nm(x.u))}${x.mutual?' <b title="They also need something you\'re deep at" class="gold">★</b>':''}</span>`).join(' &nbsp; '):'<span class="dim">Nobody has extra depth there</span>'}</td></tr>`;});
+  h+=`</tbody>`;
+  document.getElementById('needsTbl').innerHTML=h+`<tfoot><tr><td colspan="7" class="l dim" style="white-space:normal;font-size:12px;padding:10px 12px">★ means the fit runs both ways: that team also needs a position this team is deep at.</td></tr></tfoot>`;
+  // trade ledger
+  const trades=D.trades||[];
+  const tl=document.getElementById('tradeList');
+  if(!trades.length){tl.innerHTML='<div class="pad muted">No trades yet.</div>';return;}
+  tl.innerHTML=trades.map(tr=>{
+    const sides=tr.legs.map(l=>{const ps=l.players.map(s=>{const nmP=s.replace(/\s*\(.*\)$/,''), tag=(s.match(/\((.*)\)/)||[])[1]||''; const r=byName[nmP]; return {nmP,tag,r};});
+      const g4=r=>Math.max(1,4-(last4.includes(r.p[6])?1:0));
+      const tot=ps.reduce((s,x)=>s+(x.r?x.r.p[4]/g4(x.r):0),0); return {to:String(l.to),ps,tot,g4};});
+    const sum=sides.reduce((s,x)=>s+x.tot,0)||1;
+    const best=sides.slice().sort((a,b)=>b.tot-a.tot)[0]; const share=best.tot/sum;
+    const verdict=sides.length<2?'':share>=0.6?`Edge so far: ${esc(nm(best.to))}`:'Even so far';
+    return `<div class="tcard"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><span class="dim num" style="font-size:12px">${esc(tr.ts)}</span><span class="verdict" ${share>=0.6?`style="background:${color(best.to)}22;color:var(--text)"`:''}>${verdict}</span></div>
+      <div class="tsides">${sides.map(s=>`<div class="tside"><div style="margin-bottom:6px">${teamCell(s.to,{mgr:false})}</div><div class="dim" style="font:600 10px var(--mono);text-transform:uppercase;letter-spacing:.06em;display:flex;justify-content:space-between"><span>Received</span><span>Season · last-4 avg</span></div>
+        ${s.ps.map(x=>`<div class="pl"><span>${esc(x.nmP)} <span class="dim">${esc(x.tag)}</span>${x.r&&x.r.t!==s.to?` <span class="dim" style="font-size:11px">(now ${esc(nm(x.r.t))})</span>`:''}${!x.r?' <span class="dim" style="font-size:11px">(dropped)</span>':''}</span><span class="num">${x.r?f1(x.r.p[3])+' · '+f1(x.r.p[4]/s.g4(x.r)):'—'}</span></div>`).join('')}</div>`).join('')}</div>
+      <div class="split">${sides.map(s=>`<i style="display:block;width:${s.tot/sum*100}%;background:${color(s.to)}" title="${esc(nm(s.to))}: ${(s.tot/sum*100).toFixed(0)}%"></i>`).join('')}</div></div>`;
+  }).join('');
+})();
+
+// ---------- RESULTS & AWARDS ----------
+function weekAwards(w){
+  const g = D.weeks[w].games.map(([a,b,x,y,pa,pb])=>({a:String(a),b:String(b),x,y,pa,pb}));
+  const sides = g.flatMap(m=>[{t:m.a,s:m.x,o:m.b,os:m.y,p:m.pa},{t:m.b,s:m.y,o:m.a,os:m.x,p:m.pb}]);
+  const hi = sides.reduce((p,c)=>c.s>p.s?c:p), lo = sides.reduce((p,c)=>c.s<p.s?c:p);
+  const blow = g.reduce((p,c)=>Math.abs(c.x-c.y)>Math.abs(p.x-p.y)?c:p), close = g.reduce((p,c)=>Math.abs(c.x-c.y)<Math.abs(p.x-p.y)?c:p);
+  const losers = sides.filter(s=>s.s<s.os), winners = sides.filter(s=>s.s>s.os);
+  const unlucky = losers.reduce((p,c)=>c.s>p.s?c:p), lucky = winners.reduce((p,c)=>c.s<p.s?c:p);
+  const beat = sides.reduce((p,c)=>(c.s-c.p)>(p.s-p.p)?c:p), flop = sides.reduce((p,c)=>(c.s-c.p)<(p.s-p.p)?c:p);
+  return {hi,lo,blow,close,unlucky,lucky,beat,flop};
+}
+(function(){
+  const pick = document.getElementById('weekPick');
+  pick.innerHTML = finals.map(w=>`<button data-w="${w}">Wk ${w}</button>`).join('');
+  function show(w){
+    [...pick.children].forEach(b=>b.classList.toggle('on',+b.dataset.w===w));
+    let h=`<div class="pad" style="border-bottom:1px solid var(--line)"><b>Week ${w} scores</b></div>`;
+    D.weeks[w].games.forEach(([a,b,x,y,pa,pb])=>{a=String(a);b=String(b);
+      h+=`<div class="mu"><div class="side">${teamCell(a,{mgr:false})}<div class="dim" style="font-size:11px">proj ${f1(pa)}</div></div>
+      <div class="vs"><div class="score ${x>y?'win':''}" style="font-size:18px">${f2(x)}</div><div style="margin:4px 0">${sgn(x-y,2)}</div><div class="score ${y>x?'win':''}" style="font-size:18px">${f2(y)}</div></div>
+      <div class="side r">${teamCell(b,{mgr:false})}<div class="dim" style="font-size:11px">proj ${f1(pb)}</div></div></div>`;});
+    document.getElementById('weekGames').innerHTML=h;
+    const A = weekAwards(w);
+    const row=(label,main,sub)=>`<div class="award"><div><div class="a">${label}</div><div style="font-weight:600;margin-top:3px">${main}</div></div><div class="num muted" style="text-align:right">${sub}</div></div>`;
+    document.getElementById('weekAwards').innerHTML = `<b>Week ${w} awards</b>`+
+      row('🏆 Top score', esc(nm(A.hi.t)), f2(A.hi.s))+
+      row('🧱 Lowest score', esc(nm(A.lo.t)), f2(A.lo.s))+
+      row('💥 Biggest blowout', `${esc(nm(A.blow.x>A.blow.y?A.blow.a:A.blow.b))} over ${esc(nm(A.blow.x>A.blow.y?A.blow.b:A.blow.a))}`, '+'+f2(Math.abs(A.blow.x-A.blow.y)))+
+      row('😬 Nail-biter', `${esc(nm(A.close.x>A.close.y?A.close.a:A.close.b))} edges ${esc(nm(A.close.x>A.close.y?A.close.b:A.close.a))}`, '+'+f2(Math.abs(A.close.x-A.close.y)))+
+      row('🌧️ Unluckiest loss', `${esc(nm(A.unlucky.t))} lost with ${f2(A.unlucky.s)}`, `would beat ${sidesBeaten(w,A.unlucky.s)} of ${T.length-1}`)+
+      row('🍀 Luckiest win', `${esc(nm(A.lucky.t))} won with ${f2(A.lucky.s)}`, `would beat ${sidesBeaten(w,A.lucky.s)} of ${T.length-1}`)+
+      row('📈 Beat projection most', esc(nm(A.beat.t)), sgn(A.beat.s-A.beat.p))+
+      row('📉 Biggest flop vs projection', esc(nm(A.flop.t)), sgn(A.flop.s-A.flop.p));
+  }
+  window.sidesBeaten = (w,s)=> D.weeks[w].games.flatMap(g=>[g[2],g[3]]).filter(v=>v<s).length;
+  pick.addEventListener('click',e=>{const b=e.target.closest('button'); if(b) show(+b.dataset.w);});
+  if(finals.length) show(finals[finals.length-1]);
+  // season records
+  const all = finals.flatMap(w=>D.weeks[w].games.flatMap(([a,b,x,y])=>[{w,t:String(a),s:x,o:String(b),os:y},{w,t:String(b),s:y,o:String(a),os:x}]));
+  if(!all.length) return;
+  const hi=all.reduce((p,c)=>c.s>p.s?c:p), lo=all.reduce((p,c)=>c.s<p.s?c:p);
+  const wins=all.filter(s=>s.s>s.os); const blow=wins.reduce((p,c)=>(c.s-c.os)>(p.s-p.os)?c:p), close=wins.reduce((p,c)=>(c.s-c.os)<(p.s-p.os)?c:p);
+  const unl = all.filter(s=>s.s<s.os).reduce((p,c)=>c.s>p.s?c:p);
+  const longest = (()=>{let best={t:null,n:0,k:'W'}; T.forEach(t=>{let n=0,k=null; rec[t].res.forEach(r=>{n=(r===k)?n+1:1;k=r; if(n>best.n) best={t,n,k};});}); return best;})();
+  const card=(l,m,s)=>`<div><div class="kpi"><div class="k">${l}</div><div class="v" style="font-size:22px">${m}</div><div class="s">${s}</div></div></div>`;
+  document.getElementById('seasonRecords').innerHTML =
+    card('Season-high score', f2(hi.s), `${esc(nm(hi.t))} · Wk ${hi.w}`)+
+    card('Season-low score', f2(lo.s), `${esc(nm(lo.t))} · Wk ${lo.w}`)+
+    card('Biggest blowout', '+'+f2(blow.s-blow.os), `${esc(nm(blow.t))} over ${esc(nm(blow.o))} · Wk ${blow.w}`)+
+    card('Closest game', '+'+f2(close.s-close.os), `${esc(nm(close.t))} over ${esc(nm(close.o))} · Wk ${close.w}`)+
+    card('Best score in a loss', f2(unl.s), `${esc(nm(unl.t))} · Wk ${unl.w}`)+
+    card('Longest streak', `${longest.k}${longest.n}`, esc(nm(longest.t)));
+})();
+
+// ---------- HEATMAP ----------
+(function(){
+  const mn=Math.min(...allScores), mx=Math.max(...allScores);
+  const col = s => { const x=(s-mn)/(mx-mn); const stops=[[251,208,208],[255,241,194],[191,234,210],[47,191,113]]; const p=x*(stops.length-1); const i=Math.min(stops.length-2,Math.floor(p)); const f=p-i; const c=stops[i].map((v,k)=>Math.round(v+(stops[i+1][k]-v)*f)); return `rgb(${c})`; };
+  let h=`<tr><td></td>${finals.map(w=>`<td class="dim" style="font:600 10px var(--mono);text-align:center;padding:4px">W${w}</td>`).join('')}<td class="dim" style="font:600 10px var(--mono);text-align:center;padding:4px 8px">AVG</td></tr>`;
+  curOrder.forEach(t=>{ h+=`<tr><td class="l" style="padding:2px 10px 2px 0;min-width:180px">${teamCell(t,{mgr:false})}</td>${rec[t].scores.map((s,i)=>`<td><div class="cell ${rec[t].res[i]}" style="background:${col(s)}" title="Wk ${finals[i]} vs ${esc(nm(rec[t].opp[i]))}: ${f2(s)} (${rec[t].res[i]})">${s.toFixed(0)}</div></td>`).join('')}<td><div class="cell" style="background:#e9edf2;font-weight:700">${f1(mean(rec[t].scores))}</div></td></tr>`;});
+  document.getElementById('hmTbl').innerHTML=h;
+})();
+
+// ---------- TRANSACTIONS ----------
+(function(){
+  let h=`<div class="pad" style="border-bottom:1px solid var(--line)"><b>Latest moves</b> <span class="muted">· ${D.transactions.length} most recent</span></div>`;
+  D.transactions.forEach(x=>{
+    if(x.type==='trade'){
+      h+=`<div class="tx trade-row"><span class="ic trade">Trade</span><div class="p">${x.legs.map(l=>`<div><b>${esc(nm(String(l.to)))}</b> gets ${l.players.map(esc).join(', ')}</div>`).join('')}</div><div class="dim" style="font-size:11px;white-space:nowrap">${esc(x.ts)}</div></div>`;
+    } else {
+      const cls = x.type==='add/drop'?'ad':x.type;
+      h+=`<div class="tx"><span class="ic ${cls}">${x.type==='add/drop'?'Swap':x.type}</span><div class="p"><b>${esc(nm(String(x.team)))}</b><br>${x.add?`<span class="plus">+</span> ${esc(x.add)} <span class="dim">· ${esc(x.addHow||'')}</span><br>`:''}${x.drop?`<span class="minus">−</span> ${esc(x.drop)}`:''}</div><div class="dim" style="font-size:11px;white-space:nowrap">${esc(x.ts)}</div></div>`;
+    }
+  });
+  document.getElementById('txList').innerHTML=h;
+  const trades = Object.fromEntries(T.map(t=>[t,0])); D.transactions.filter(x=>x.type==='trade').forEach(x=>x.legs.forEach(l=>trades[String(l.to)]++));
+  const maxM = Math.max(...T.map(t=>D.teams[t].moves)); const maxF=Math.max(...T.map(t=>D.teams[t].faab));
+  let a=`<thead><tr><th class="l">Team</th><th class="l">Season moves</th><th class="l">FAAB left</th></tr></thead><tbody>`;
+  T.slice().sort((x,y)=>D.teams[y].moves-D.teams[x].moves).forEach(t=>{
+    a+=`<tr><td class="l">${teamCell(t)}</td><td class="l"><div class="bar" style="width:140px"><i style="width:${D.teams[t].moves/maxM*100}%;background:linear-gradient(90deg,#2b4a7a,var(--blue))"></i><span>${D.teams[t].moves}</span></div></td>
+    <td class="l"><div class="bar b2" style="width:140px"><i style="width:${D.teams[t].faab/maxF*100}%"></i><span>$${D.teams[t].faab}</span></div></td></tr>`;});
+  document.getElementById('actTbl').innerHTML=a+'</tbody>';
+})();
+
+// ---------- HEADLINES ----------
+(function(){
+  const H=[];
+  const add=(tag,title,body,team)=>{const c=team?color(team):'var(--turf)'; H.push(`<article class="hcard" style="--accent:${c};--accent-t:${team?shade(color(team),0.45):'var(--turf-t)'}"><div class="tag">${tag}</div><h3>${title}</h3><p>${body}</p></article>`);};
+  const lead=curOrder[0];
+  add('Top dog', `${esc(nm(lead))} sets the pace`, `${tp(lead)} leads at ${rec[lead].w}-${rec[lead].l}, with a <b>${pct(odds[lead].bye)}</b> chance at a first-round bye and <b>${pct(odds[lead].one)}</b> at the #1 seed.`, lead);
+  if(gameImpact.length){ const big=gameImpact.filter(g=>g.w===curWeek).sort((x,y)=>y.stakes-x.stakes)[0];
+    if(big){const fav=big.pa>=0.5?big.a:big.b; add('Game of the week', `${esc(nm(big.a))} vs ${esc(nm(big.b))}`, `The biggest playoff stakes of Week ${curWeek}. ${tp(fav)} is favoured at <b>${pct(Math.max(big.pa,1-big.pa))}</b>.`, fav);} }
+  const sixth=curOrder[P-1], seventh=curOrder[P];
+  const bubble=T.filter(t=>odds[t].po>0.15&&odds[t].po<0.85).sort((a,b)=>odds[b].po-odds[a].po);
+  if(bubble.length) add('The bubble', `${bubble.length} teams fighting for their lives`, `${bubble.map(t=>`${tp(t)} ${pct(odds[t].po)}`).join(' · ')}<br><br>Right now ${tp(sixth)} holds the last spot over ${tp(seventh)}${rec[sixth].w===rec[seventh].w?' on points':''}.`, sixth);
+  const lucks=T.map(t=>{const ap=allPlay[t]; return {t,l:rec[t].w-ap.w/Math.max(1,ap.w+ap.l)*rec[t].scores.length};}).sort((a,b)=>a.l-b.l);
+  if(lucks.length){const u=lucks[0],k=lucks[lucks.length-1]; add('Schedule luck', `${esc(nm(u.t))} deserves better`, `${tp(u.t)} has <b>${sgn(u.l)}</b> wins compared with its all-play record, the unluckiest in the league. ${tp(k.t)} has been the luckiest (<b>${sgn(k.l)}</b>).`, u.t);}
+  const pfRank=T.slice().sort((a,b)=>rec[b].pf-rec[a].pf);
+  const mism=T.map(t=>({t,d:curSeed[t]-(pfRank.indexOf(t)+1)})).sort((a,b)=>b.d-a.d)[0];
+  if(mism&&mism.d>=3) add('Points don\'t lie?', `Scoring like a contender`, `${tp(mism.t)} is <b>#${pfRank.indexOf(mism.t)+1}</b> in points scored but only <b>#${curSeed[mism.t]}</b> in the standings.`, mism.t);
+  const trades=D.trades||D.transactions.filter(x=>x.type==='trade');
+  if(trades.length){const t0=trades[0]; add('Latest trade', `${esc(nm(String(t0.legs[0].to)))} and ${esc(nm(String(t0.legs[1]?.to||t0.legs[0].to)))} deal`, t0.legs.map(l=>`${tp(String(l.to))} gets ${l.players.map(p=>esc(p.replace(/\s*\(.*\)$/,''))).join(', ')}`).join('<br>')+` <span class="dim">· ${esc(t0.ts)}</span>`, String(t0.legs[0].to));}
+  if(window.__power){const pr=window.__power; const hot=T.slice().sort((a,b)=>pr.recent[b]-pr.recent[a]); add('Heat check', `${esc(nm(hot[0]))} is on fire`, `${tp(hot[0])} is averaging <b>${f1(pr.recent[hot[0]])}</b> over the last 3 weeks. Coldest: ${tp(hot[hot.length-1])} at <b>${f1(pr.recent[hot[hot.length-1]])}</b>.`, hot[0]);}
+  if(finals.length){const lw=finals[finals.length-1]; const A=weekAwards(lw); const bw=A.blow.x>A.blow.y?A.blow.a:A.blow.b; add(`Week ${lw} recap`, `${esc(nm(A.hi.t))} drops ${f2(A.hi.s)}`, `Top score of the week. Biggest blowout: ${tp(bw)} by <b>${f2(Math.abs(A.blow.x-A.blow.y))}</b>. Tough luck to ${tp(A.unlucky.t)}, who lost with <b>${f2(A.unlucky.s)}</b>.`, A.hi.t);}
+  const cl=T.filter(t=>statusOf[t]==='x'||statusOf[t]==='y'), el=T.filter(t=>statusOf[t]==='e');
+  if(cl.length||el.length) add('Clinch watch', `${cl.length} in, ${el.length} out`, `${cl.length?'Clinched: '+cl.map(tp).join(' ')+'. ':''}${el.length?'Eliminated: '+el.map(tp).join(' ')+'.':''}`);
+  else if(remaining.length) add('Clinch watch', `Everyone's still alive`, `Nobody has clinched or been eliminated yet. All ${T.length} teams still have a path.`);
+  document.getElementById('headlineList').innerHTML=H.join('');
+})();
+
+}
+(async()=>{
+  let D=null;
+  try{ const r=await fetch('data.json?t='+Date.now(),{cache:'no-store'}); if(r.ok) D=await r.json(); }catch(e){}
+  if(!D){ try{ D=JSON.parse(document.getElementById('league-data').textContent); }catch(e){} }
+  if(!D){ document.querySelector('main').innerHTML='<p class="pad muted">Couldn\'t load league data.</p>'; return; }
+  main(D);
+  const links=[...document.querySelectorAll('#navLinks a')];
+  const setActive=id=>links.forEach(a=>{const on=a.getAttribute('href')==='#'+id; a.classList.toggle('active',on); if(on&&a.scrollIntoView){const nav=a.parentElement; nav.scrollTo({left:a.offsetLeft-nav.clientWidth/2+a.clientWidth/2,behavior:'smooth'});}});
+  const secs=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  const onScroll=()=>{const y=window.scrollY+window.innerHeight*0.3; let cur=secs[0]; for(const s of secs){ if(s.offsetTop<=y) cur=s; } if(window.innerHeight+window.scrollY>=document.body.scrollHeight-4) cur=secs[secs.length-1]; if(cur&&cur.id!==onScroll.last){onScroll.last=cur.id; setActive(cur.id);} };
+  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>
