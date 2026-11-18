@@ -150,6 +150,13 @@ select{background:#fff;color:var(--text);border:1px solid #cfd6df;border-radius:
 .dist .r{font:700 14px/1 var(--mono)}
 .dist .p{font:700 18px/1.3 var(--head)}
 .dist .f{font-size:11px;color:var(--dim)}
+th.sortable{cursor:pointer;user-select:none;transition:background .15s}
+th.sortable:hover{background:#e8edf3;color:var(--text)}
+th.sortable::after{content:"↕";margin-left:4px;opacity:.35;font-size:10px}
+th.sortable.desc::after{content:"▼";opacity:1;color:var(--turf-t)}
+th.sortable.asc::after{content:"▲";opacity:1;color:var(--turf-t)}
+th.sortable.desc,th.sortable.asc{color:var(--text)}
+table.resorted .cutline td{border-bottom:1px solid #eef1f5!important}
 footer{color:var(--dim);font-size:12px;padding:40px 0 60px;border-top:1px solid var(--line);margin-top:30px}
 </style>
 </head>
@@ -266,8 +273,26 @@ const nm = id => D.teams[id].name;
 const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const initials = s => s.replace(/[^A-Za-z0-9 ]/g,'').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
 const tp = id => `<span class="tp" style="background:${color(id)}1f;color:${shade(color(id),0.42)};box-shadow:inset 0 0 0 1px ${color(id)}55">${esc(nm(id))}</span>`;
+// sortable tables: first click high→low (text and rank columns: A→Z / 1→10), second click flips
+function makeSortable(tbl){
+  const ths=[...tbl.querySelectorAll('thead th')], tb=tbl.querySelector('tbody');
+  [...tb.rows].forEach((r,i)=>r.dataset.i=i);
+  const key=(r,c)=>{const td=r.cells[c]; const v=td.dataset.v!==undefined?td.dataset.v:td.textContent.replace(/[−–]/g,'-').replace(/[^0-9.\-]/g,' ').trim().split(' ')[0]; const n=parseFloat(v); return isNaN(n)?String(v):n;};
+  let col=0, dir='asc';
+  const paint=()=>ths.forEach((th,i)=>{th.classList.remove('asc','desc'); if(i===col) th.classList.add(dir);});
+  ths.forEach((th,c)=>{ th.classList.add('sortable'); th.title='Click to sort';
+    th.addEventListener('click',()=>{
+      if(col===c) dir = dir==='desc'?'asc':'desc'; else { col=c; dir = th.dataset.first||'desc'; }
+      const rows=[...tb.rows]; const m=dir==='asc'?1:-1;
+      rows.sort((a,b)=>{const x=key(a,c), y=key(b,c); const d=(typeof x==='string'||typeof y==='string')?String(x).localeCompare(String(y)):x-y; return d*m || (a.dataset.i-b.dataset.i);});
+      rows.forEach(r=>tb.appendChild(r));
+      tbl.classList.toggle('resorted', !(col===0&&dir==='asc'));
+      paint();
+    });});
+  paint();
+}
 const teamCell = (id, opts={}) => `<div class="team ${id===ME?'me':''}"><span class="badge" style="background:${color(id)}">${initials(nm(id))}</span><div style="min-width:0"><div class="tname">${esc(nm(id))}</div>${opts.mgr!==false?`<div class="mgr">${esc(D.teams[id].mgr)}</div>`:''}</div></div>`;
-const pct = (p,d=0) => p>=0.9995&&p<1?'>99%':(p>0&&p<0.0005?'<1%':(p*100).toFixed(d)+'%');
+const pct = (p,d=0) => p>=0.995&&p<1?'>99%':(p>0&&p<0.005?'<1%':(p*100).toFixed(d)+'%');
 const f1 = x => x.toFixed(1), f2 = x => x.toFixed(2);
 const sgn = (x,d=1) => (x>0?'+':x<0?'−':'')+Math.abs(x).toFixed(d);
 
@@ -384,20 +409,22 @@ document.getElementById('deadline').textContent = D.league.tradeDeadline;
 
 // ---------- STANDINGS ----------
 (function(){
-  let h=`<thead><tr><th class="l">#</th><th class="l">Team</th><th>W-L</th><th>PF</th><th>PA</th><th>Diff</th><th>Strk</th><th>All-play</th><th class="l">Playoffs</th><th class="l">Bye</th><th>#1 seed</th><th>Proj W</th></tr></thead><tbody>`;
+  let h=`<thead><tr><th class="l" data-first="asc">#</th><th class="l" data-first="asc">Team</th><th>W-L</th><th>PF</th><th>PA</th><th>Diff</th><th>Strk</th><th>All-play</th><th class="l">Playoffs</th><th class="l">Bye</th><th>#1 seed</th><th>Proj W</th></tr></thead><tbody>`;
   curOrder.forEach((t,i)=>{
     const r=rec[t], o=odds[t]; const ap=allPlay[t];
     const expW = Object.entries(winsDist[idx[t]]).reduce((s,[k,v])=>s+(+k)*v[0],0)/N;
-    h+=`<tr class="${i===P-1?'cutline':''}"><td class="l tstrip" style="border-left-color:${color(t)}"><span class="seed" style="color:${i<BYE?'var(--gold-t)':i<P?'var(--turf-t)':'var(--dim)'}">${i+1}</span></td>
-    <td class="l" style="min-width:200px"><div style="display:flex;align-items:center">${teamCell(t)}${stBadge(t)}</div></td>
-    <td class="num">${r.w}-${r.l}${r.t?'-'+r.t:''}</td><td class="num">${f2(r.pf)}</td><td class="num muted">${f2(r.pa)}</td>
-    <td class="num ${r.pf-r.pa>=0?'pos':'neg'}">${sgn(r.pf-r.pa)}</td><td class="num">${streak(t)}</td>
-    <td class="num muted">${ap.w}-${ap.l}</td>
-    <td class="l"><div class="bar"><i style="width:${o.po*100}%"></i><span>${pct(o.po)}</span></div></td>
-    <td class="l"><div class="bar b2"><i style="width:${o.bye*100}%"></i><span>${pct(o.bye)}</span></div></td>
-    <td class="num">${pct(o.one)}</td><td class="num muted">${f1(expW)}</td></tr>`;
+    const stv=(()=>{const s=streak(t); return s==='—'?0:(s[0]==='W'?1:-1)*(+s.slice(1));})();
+    h+=`<tr class="${i===P-1?'cutline':''}"><td class="l tstrip" data-v="${i+1}" style="border-left-color:${color(t)}"><span class="seed" style="color:${i<BYE?'var(--gold-t)':i<P?'var(--turf-t)':'var(--dim)'}">${i+1}</span></td>
+    <td class="l" data-v="${esc(nm(t).toLowerCase())}" style="min-width:200px"><div style="display:flex;align-items:center">${teamCell(t)}${stBadge(t)}</div></td>
+    <td class="num" data-v="${r.w+0.5*r.t+r.pf/1e6}">${r.w}-${r.l}${r.t?'-'+r.t:''}</td><td class="num" data-v="${r.pf}">${f2(r.pf)}</td><td class="num muted" data-v="${r.pa}">${f2(r.pa)}</td>
+    <td class="num ${r.pf-r.pa>=0?'pos':'neg'}" data-v="${r.pf-r.pa}">${sgn(r.pf-r.pa)}</td><td class="num" data-v="${stv}">${streak(t)}</td>
+    <td class="num muted" data-v="${ap.w}">${ap.w}-${ap.l}</td>
+    <td class="l" data-v="${o.po}"><div class="bar"><i style="width:${o.po*100}%"></i><span>${pct(o.po)}</span></div></td>
+    <td class="l" data-v="${o.bye}"><div class="bar b2"><i style="width:${o.bye*100}%"></i><span>${pct(o.bye)}</span></div></td>
+    <td class="num" data-v="${o.one}">${pct(o.one)}</td><td class="num muted" data-v="${expW}">${f1(expW)}</td></tr>`;
   });
   document.getElementById('standTbl').innerHTML = h+'</tbody>';
+  makeSortable(document.getElementById('standTbl'));
 })();
 
 // ---------- THIS WEEK ----------
@@ -533,16 +560,17 @@ function powerFor(weekList){
   if(!finals.length) return;
   const now = powerFor(finals), prev = finals.length>1? powerFor(finals.slice(0,-1)) : now;
   const prevRank = Object.fromEntries(prev.order.map((t,i)=>[t,i+1]));
-  let h=`<thead><tr><th class="l">Rk</th><th class="l">Move</th><th class="l">Team</th><th>Power</th><th>Record</th><th>All-play</th><th>Exp W</th><th>Luck</th><th>Last 3 avg</th><th>Season avg</th><th>High</th><th>Low</th></tr></thead><tbody>`;
+  let h=`<thead><tr><th class="l" data-first="asc">Rk</th><th class="l">Move</th><th class="l" data-first="asc">Team</th><th>Power</th><th>Record</th><th>All-play</th><th>Exp W</th><th>Luck</th><th>Last 3 avg</th><th>Season avg</th><th>High</th><th>Low</th></tr></thead><tbody>`;
   now.order.forEach((t,i)=>{
     const ap=allPlay[t]; const games=rec[t].scores.length; const expW = ap.w/Math.max(1,ap.w+ap.l)*games; const luck = rec[t].w-expW;
     const mv = prevRank[t]-(i+1);
-    h+=`<tr><td class="l"><span class="seed gold">${i+1}</span></td><td class="l num ${mv>0?'pos':mv<0?'neg':'dim'}">${mv>0?'▲'+mv:mv<0?'▼'+(-mv):'—'}</td><td class="l" style="min-width:200px">${teamCell(t)}</td>
+    h+=`<tr><td class="l" data-v="${i+1}"><span class="seed gold">${i+1}</span></td><td class="l num ${mv>0?'pos':mv<0?'neg':'dim'}" data-v="${mv}">${mv>0?'▲'+mv:mv<0?'▼'+(-mv):'—'}</td><td class="l" data-v="${esc(nm(t).toLowerCase())}" style="min-width:200px">${teamCell(t)}</td>
     <td class="num">${(now.score[t]*100).toFixed(1)}</td><td class="num">${rec[t].w}-${rec[t].l}</td><td class="num">${ap.w}-${ap.l}</td><td class="num muted">${f1(expW)}</td>
     <td class="num ${luck>0.5?'pos':luck<-0.5?'neg':'muted'}">${sgn(luck)}</td><td class="num">${f1(now.recent[t])}</td><td class="num muted">${f1(mean(rec[t].scores))}</td>
     <td class="num">${f2(Math.max(...rec[t].scores))}</td><td class="num muted">${f2(Math.min(...rec[t].scores))}</td></tr>`;
   });
   document.getElementById('powerTbl').innerHTML = h+'</tbody>';
+  makeSortable(document.getElementById('powerTbl'));
   window.__power = now;
 })();
 
