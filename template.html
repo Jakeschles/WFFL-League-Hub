@@ -157,6 +157,8 @@ th.sortable.desc::after{content:"▼";opacity:1;color:var(--turf-t)}
 th.sortable.asc::after{content:"▲";opacity:1;color:var(--turf-t)}
 th.sortable.desc,th.sortable.asc{color:var(--text)}
 table.resorted .cutline td{border-bottom:1px solid #eef1f5!important}
+.morebtn{background:#fff;border:1px solid #cfd6df;border-radius:8px;padding:8px 14px;font:600 13px var(--body);color:var(--text);cursor:pointer}
+.morebtn:hover{background:var(--panel2)}
 footer{color:var(--dim);font-size:12px;padding:40px 0 60px;border-top:1px solid var(--line);margin-top:30px}
 </style>
 </head>
@@ -226,6 +228,7 @@ footer{color:var(--dim);font-size:12px;padding:40px 0 60px;border-top:1px solid 
   <div class="card scroll"><table id="needsTbl"></table></div>
   <h3 style="font:600 20px var(--head);text-transform:uppercase;margin:26px 0 6px">Trade ledger</h3>
   <p class="lede">Every trade this season, scored by what each side's players have produced: season points plus their average over the last 4 weeks. The bar shows each side's share of the combined recent production. Players since dropped count as zero.</p>
+  <div class="ctrls"><select id="tradeSel" aria-label="Filter trades by team"></select><span class="muted" id="tradeNote"></span></div>
   <div class="card" id="tradeList"></div>
 </section>
 
@@ -242,7 +245,8 @@ footer{color:var(--dim);font-size:12px;padding:40px 0 60px;border-top:1px solid 
 
 <section id="moves">
   <h2><span class="n">10</span>Transactions &amp; Activity</h2>
-  <p class="lede">Latest adds, drops and trades. The trade deadline is <b id="deadline"></b>.</p>
+  <p class="lede">Every add, drop and trade this season, newest first. The trade deadline is <b id="deadline"></b>.</p>
+  <div class="ctrls"><select id="txSel" aria-label="Filter transactions by team"></select><span class="muted" id="txNote"></span></div>
   <div class="grid g2">
     <div class="card" id="txList"></div>
     <div class="card scroll"><table id="actTbl"></table></div>
@@ -291,6 +295,7 @@ function makeSortable(tbl){
     });});
   paint();
 }
+const teamOptions = () => `<option value="all">All teams</option>`+Object.keys(D.teams).sort((a,b)=>nm(a).localeCompare(nm(b))).map(t=>`<option value="${t}">${esc(nm(t))} (${esc(D.teams[t].mgr)})</option>`).join('');
 const teamCell = (id, opts={}) => `<div class="team ${id===ME?'me':''}"><span class="badge" style="background:${color(id)}">${initials(nm(id))}</span><div style="min-width:0"><div class="tname">${esc(nm(id))}</div>${opts.mgr!==false?`<div class="mgr">${esc(D.teams[id].mgr)}</div>`:''}</div></div>`;
 const pct = (p,d=0) => p>=0.995&&p<1?'>99%':(p>0&&p<0.005?'<1%':(p*100).toFixed(d)+'%');
 const f1 = x => x.toFixed(1), f2 = x => x.toFixed(2);
@@ -608,8 +613,14 @@ function powerFor(weekList){
   // trade ledger
   const trades=D.trades||[];
   const tl=document.getElementById('tradeList');
-  if(!trades.length){tl.innerHTML='<div class="pad muted">No trades yet.</div>';return;}
-  tl.innerHTML=trades.map(tr=>{
+  const tsel=document.getElementById('tradeSel'), tnote=document.getElementById('tradeNote');
+  tsel.innerHTML=teamOptions();
+  const renderTrades=()=>{
+  const tm=tsel.value||'all';
+  const list=tm==='all'?trades:trades.filter(tr=>tr.legs.some(l=>String(l.to)===tm));
+  tnote.textContent=tm==='all'?`${trades.length} trade${trades.length===1?'':'s'} this season`:`${list.length} trade${list.length===1?'':'s'} involving ${nm(tm)}`;
+  if(!list.length){tl.innerHTML=`<div class="pad muted">${tm==='all'?'No trades yet.':'No trades for this team yet.'}</div>`;return;}
+  tl.innerHTML=list.map(tr=>{
     const sides=tr.legs.map(l=>{const ps=l.players.map(s=>{const nmP=s.replace(/\s*\(.*\)$/,''), tag=(s.match(/\((.*)\)/)||[])[1]||''; const r=byName[nmP]; return {nmP,tag,r};});
       const g4=r=>Math.max(1,4-(last4.includes(r.p[6])?1:0));
       const tot=ps.reduce((s,x)=>s+(x.r?x.r.p[4]/g4(x.r):0),0); return {to:String(l.to),ps,tot,g4};});
@@ -621,6 +632,8 @@ function powerFor(weekList){
         ${s.ps.map(x=>`<div class="pl"><span>${esc(x.nmP)} <span class="dim">${esc(x.tag)}</span>${x.r&&x.r.t!==s.to?` <span class="dim" style="font-size:11px">(now ${esc(nm(x.r.t))})</span>`:''}${!x.r?' <span class="dim" style="font-size:11px">(dropped)</span>':''}</span><span class="num">${x.r?f1(x.r.p[3])+' · '+f1(x.r.p[4]/s.g4(x.r)):'—'}</span></div>`).join('')}</div>`).join('')}</div>
       <div class="split">${sides.map(s=>`<i style="display:block;width:${s.tot/sum*100}%;background:${color(s.to)}" title="${esc(nm(s.to))}: ${(s.tot/sum*100).toFixed(0)}%"></i>`).join('')}</div></div>`;
   }).join('');
+  };
+  tsel.addEventListener('change',renderTrades); renderTrades();
 })();
 
 // ---------- RESULTS & AWARDS ----------
@@ -688,16 +701,27 @@ function weekAwards(w){
 
 // ---------- TRANSACTIONS ----------
 (function(){
-  let h=`<div class="pad" style="border-bottom:1px solid var(--line)"><b>Latest moves</b> <span class="muted">· ${D.transactions.length} most recent</span></div>`;
-  D.transactions.forEach(x=>{
-    if(x.type==='trade'){
-      h+=`<div class="tx trade-row"><span class="ic trade">Trade</span><div class="p">${x.legs.map(l=>`<div><b>${esc(nm(String(l.to)))}</b> gets ${l.players.map(esc).join(', ')}</div>`).join('')}</div><div class="dim" style="font-size:11px;white-space:nowrap">${esc(x.ts)}</div></div>`;
-    } else {
-      const cls = x.type==='add/drop'?'ad':x.type;
-      h+=`<div class="tx"><span class="ic ${cls}">${x.type==='add/drop'?'Swap':x.type}</span><div class="p"><b>${esc(nm(String(x.team)))}</b><br>${x.add?`<span class="plus">+</span> ${esc(x.add)} <span class="dim">· ${esc(x.addHow||'')}</span><br>`:''}${x.drop?`<span class="minus">−</span> ${esc(x.drop)}`:''}</div><div class="dim" style="font-size:11px;white-space:nowrap">${esc(x.ts)}</div></div>`;
-    }
-  });
-  document.getElementById('txList').innerHTML=h;
+  const xsel=document.getElementById('txSel'), xnote=document.getElementById('txNote'), xl=document.getElementById('txList');
+  xsel.innerHTML=teamOptions();
+  const involves=(x,tm)=>x.type==='trade'?x.legs.some(l=>String(l.to)===tm):String(x.team)===tm;
+  let shown=40;
+  const rowHtml=x=>{
+    if(x.type==='trade') return `<div class="tx trade-row"><span class="ic trade">Trade</span><div class="p">${x.legs.map(l=>`<div><b>${esc(nm(String(l.to)))}</b> gets ${l.players.map(esc).join(', ')}</div>`).join('')}</div><div class="dim" style="font-size:11px;white-space:nowrap">${esc(x.ts)}</div></div>`;
+    const cls = x.type==='add/drop'?'ad':x.type;
+    return `<div class="tx"><span class="ic ${cls}">${x.type==='add/drop'?'Swap':x.type}</span><div class="p"><b>${esc(nm(String(x.team)))}</b><br>${x.add?`<span class="plus">+</span> ${esc(x.add)} <span class="dim">· ${esc(x.addHow||'')}</span><br>`:''}${x.drop?`<span class="minus">−</span> ${esc(x.drop)}`:''}</div><div class="dim" style="font-size:11px;white-space:nowrap">${esc(x.ts)}</div></div>`;
+  };
+  const renderTx=()=>{
+    const tm=xsel.value||'all';
+    const list=tm==='all'?D.transactions:D.transactions.filter(x=>involves(x,tm));
+    const nTr=list.filter(x=>x.type==='trade').length;
+    xnote.textContent=tm==='all'?`${list.length} moves this season`:`${nm(tm)}: ${list.length} move${list.length===1?'':'s'}, including ${nTr} trade${nTr===1?'':'s'}`;
+    let h=`<div class="pad" style="border-bottom:1px solid var(--line)"><b>${tm==='all'?'All moves':esc(nm(tm))}</b> <span class="muted">· newest first</span></div>`;
+    h+=list.length?list.slice(0,shown).map(rowHtml).join(''):'<div class="pad muted">No moves yet.</div>';
+    if(list.length>shown) h+=`<div class="pad" style="text-align:center"><button class="morebtn" id="txMore">Show more (${list.length-shown} older)</button></div>`;
+    xl.innerHTML=h;
+    const mb=document.getElementById('txMore'); if(mb) mb.addEventListener('click',()=>{shown+=40; renderTx();});
+  };
+  xsel.addEventListener('change',()=>{shown=40; renderTx();}); renderTx();
   const trades = Object.fromEntries(T.map(t=>[t,0])); D.transactions.filter(x=>x.type==='trade').forEach(x=>x.legs.forEach(l=>trades[String(l.to)]++));
   const maxM = Math.max(...T.map(t=>D.teams[t].moves)); const maxF=Math.max(...T.map(t=>D.teams[t].faab));
   let a=`<thead><tr><th class="l">Team</th><th class="l">Season moves</th><th class="l">FAAB left</th></tr></thead><tbody>`;

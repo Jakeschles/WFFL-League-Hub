@@ -48,10 +48,10 @@
     const icons = [...r.querySelectorAll('td:first-child .F-icon')].map(s => s.title);
     const divs = [...r.querySelectorAll('td.Fill-x > div')];
     const o = {type: icons.length > 1 ? 'add/drop' : /Added/.test(icons[0]) ? 'add' : 'drop', ts, team: tm};
-    divs.forEach(dv => { const how = clean(dv.querySelector('h6')?.innerText); if (/^To /.test(how)) o.drop = pl(dv); else { o.add = pl(dv); o.addHow = how.replace(/\s+/g, ' '); } });
+    divs.forEach(dv => { const how = clean(dv.querySelector('h6')?.innerText); if (/^To |^Dropped/.test(how)) o.drop = pl(dv); else { o.add = pl(dv); o.addHow = how.replace(/\s+/g, ' ').replace(/\s*\(\s*by Commissioner\s*\)/, ' (Commish)'); } });
     out.transactions.push(o);
   }
-  out.transactions = out.transactions.filter(x => x.ts).slice(0, 20);
+  out.transactions = out.transactions.filter(x => x.ts); // latest page only; merge.py keeps the full history
   // full trade history
   const td2 = await get(`/f1/${LID}/transactions?transactionsfilter=trade`);
   out.trades = []; let ct = null;
