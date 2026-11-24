@@ -261,7 +261,7 @@ footer{color:var(--dim);font-size:12px;padding:40px 0 60px;border-top:1px solid 
 </section>
 
 <footer>
-  Data from the WFFL Yahoo league page, refreshed automatically. Playoff odds are a model, not a promise: each team's future scores are simulated from its season average blended with Yahoo's weekly projections. <span id="footUpd"></span>
+  Data from the WFFL Yahoo league page, refreshed automatically. Playoff odds are a model, not a promise: this week's scores are simulated from Yahoo's projections, and later weeks mainly from each team's current starting lineup, with starters on bye or injured swapped for the best bench player, blended with season form and Yahoo's projections. <span id="footUpd"></span>
 </footer>
 </main>
 
@@ -333,12 +333,67 @@ const sd = a => {const m=mean(a); return Math.sqrt(a.reduce((x,y)=>x+(y-m)**2,0)
 const LM = mean(allScores), LSD = sd(allScores);
 
 // ---------- model ----------
+// How far actual scores land from Yahoo's projection, measured over finished weeks.
+const projErr = finals.flatMap(w=>D.weeks[w].games.flatMap(g=>[g[4]>0?g[2]-g[4]:null, g[5]>0?g[3]-g[5]:null])).filter(x=>x!==null);
+const PSD = projErr.length>10 ? sd(projErr) : LSD;
+// ---------- roster projections: who can actually play each week (byes + injuries) ----------
+// Each player gets a per-game rate (half season, half last 4 weeks). For a given week, the team's
+// current starters are used; any starter on bye or out injured is swapped for the best bench player
+// at that position, and a slot nobody can fill gets a waiver-wire replacement value.
+const SLOTS = ['QB','RB','RB','WR','WR','TE','W/R/T','K','DEF'];
+const REPL = {QB:14, RB:7, WR:7, TE:5, K:7, DEF:6};
+const OUT_ALL = new Set(['IR','IR-R','PUP','NFI','SUSP']);   // out for the rest of the regular season
+const OUT_NOW = {O:0, D:0.25, Q:0.85};                       // only affects the upcoming week
+const lastDone = finals.length ? finals[finals.length-1] : 0, last4 = finals.slice(-4);
+function playerRate(p){
+  const [, , , sp, l4, , bye] = p;
+  const gs = finals.length - (bye && bye<=lastDone ? 1 : 0), g4 = last4.length - (last4.includes(bye) ? 1 : 0);
+  const sr = sp/Math.max(gs,1), lr = l4/Math.max(g4,1);
+  return l4>0 ? 0.5*sr + 0.5*lr : 0.6*sr;
+}
+function availability(p, w){
+  const inj = p[5], bye = p[6];
+  if(bye===w) return {f:0, why:'bye'};
+  if(OUT_ALL.has(inj)) return {f:0, why:inj};
+  if(w===curWeek && inj in OUT_NOW) return {f:OUT_NOW[inj], why:inj};
+  return {f:1, why:''};
+}
+function rosterProj(t, w){
+  const R = D.rosters && D.rosters[t]; if(!R || !R.length) return null;
+  const pl = R.map(p=>{const a=availability(p,w); return {n:p[0], pos:String(p[1]).split(','), slot:p[2], r:playerRate(p), v:playerRate(p)*a.f, why:a.why};});
+  const pool = pl.filter(x=>x.v>0).sort((x,y)=>y.v-x.v), used = new Set(); let tot = 0;
+  // Start from the manager's current starting lineup (the data refreshes hourly). A starter who
+  // can't play that week (bye/injury) is replaced by the best eligible bench player.
+  const open = [];
+  SLOTS.forEach(s=>open.push(s));
+  for(const x of pool){ const i = open.indexOf(x.slot); if(i>=0){ open.splice(i,1); used.add(x.n); tot += x.v; } }
+  for(const s of open){
+    const ok = s==='W/R/T' ? ['RB','WR','TE'] : [s];
+    const best = pool.find(x=>!used.has(x.n) && x.pos.some(q=>ok.includes(q)));
+    if(best){ used.add(best.n); tot += Math.max(best.v, REPL[ok[0]]); } else tot += REPL[ok[0]];
+  }
+  // notable absences: anyone averaging 8+ who is on bye or hurt this week
+  const missing = pl.filter(x=>x.why && x.r>=8 && (x.why==='bye' || x.v < x.r*0.5)).sort((x,y)=>y.r-x.r);
+  return {pts: tot, missing};
+}
+// Per-game averages run a bit high versus real weekly scores, so scale to the league's real scoring.
+const rpScale = (()=>{ const all=[]; for(const w of remaining) for(const t of T){ const r=rosterProj(t,w); if(r) all.push(r.pts); }
+  return all.length ? LM/mean(all) : 1; })();
+const rosterPts = (t,w) => { const r=rosterProj(t,w); return r ? r.pts*rpScale : null; };
+
 function model(t, w, proj){
+  // This week: Yahoo's projection already reflects byes, injuries and set lineups, and
+  // backtesting showed blending in season averages made picks worse. Use it directly.
+  if(w===curWeek && proj>0) return {mu: proj, sd: PSD};
+  // Later weeks: lean on the roster projection (knows byes + injuries), with some season form
+  // and Yahoo's far-out projection mixed in.
   const s = rec[t].scores; const avg = s.length?mean(s):LM;
   const recent = s.length>=3? mean(s.slice(-3)) : avg;
   const base = 0.7*avg + 0.3*recent;
-  const wp = w===curWeek ? 0.5 : 0.3;
-  const mu = proj>0 ? (1-wp)*base + wp*proj : base;
+  const rp = rosterPts(t, w);
+  let mu;
+  if(rp!==null) mu = proj>0 ? 0.6*rp + 0.2*base + 0.2*proj : 0.75*rp + 0.25*base;
+  else mu = proj>0 ? 0.7*base + 0.3*proj : base;
   const tsd = s.length>2? sd(s) : LSD;
   return {mu, sd: 0.5*tsd + 0.5*LSD};
 }
@@ -437,8 +492,10 @@ document.getElementById('deadline').textContent = D.league.tradeDeadline;
   const wk = D.weeks[curWeek]; const isFinal = wk.final;
   document.getElementById('twTitle').textContent = `Week ${curWeek} ${isFinal?'Results':'Preview'}`;
   document.getElementById('twLede').textContent = isFinal ? 'Final scores from the last week of the regular season.' :
-    `Win chances come from the model (season form blended with Yahoo's projections). Stakes is how much this game moves the league's playoff odds.`;
+    `This week's win chances come from Yahoo's projections, which already account for byes and injuries. Key players who are on bye or hurt are listed under each team. Stakes is how much this game moves the league's playoff odds.`;
   const thisImp = gameImpact.filter(g=>g.w===curWeek);
+  const outLine = t => { if(isFinal) return ''; const r=rosterProj(t,curWeek); if(!r||!r.missing.length) return '';
+    return `<div class="dim" style="font-size:11px;margin-top:2px">Missing: ${r.missing.slice(0,4).map(x=>esc(x.n)+' ('+(x.why==='bye'?'bye':x.why)+')').join(', ')}</div>`; };
   const maxSt = Math.max(...gameImpact.map(g=>g.stakes), 0.0001);
   let h='';
   wk.games.forEach(g=>{
@@ -448,9 +505,9 @@ document.getElementById('deadline').textContent = D.league.tradeDeadline;
     const fl = gi? (gi.stakes>=0.6*maxSt?'hot':gi.stakes>=0.3*maxSt?'':'cool') : 'cool';
     const swingA = gi? gi.cond.find(c=>c.t===a):null, swingB = gi? gi.cond.find(c=>c.t===b):null;
     h+=`<div class="mu">
-      <div class="side">${teamCell(a)}<div class="muted" style="font-size:12px">${rec[a].w}-${rec[a].l} · #${curSeed[a]} · proj ${f1(g[4])}</div></div>
+      <div class="side">${teamCell(a)}<div class="muted" style="font-size:12px">${rec[a].w}-${rec[a].l} · #${curSeed[a]} · proj ${f1(g[4])}</div>${outLine(a)}</div>
       <div class="vs">${live?`<div class="score ${g[2]>g[3]?'win':''}">${f2(g[2])}</div><div style="margin:6px 0">—</div><div class="score ${g[3]>g[2]?'win':''}">${f2(g[3])}</div>`:'VS'}</div>
-      <div class="side r">${teamCell(b)}<div class="muted" style="font-size:12px">${rec[b].w}-${rec[b].l} · #${curSeed[b]} · proj ${f1(g[5])}</div></div>
+      <div class="side r">${teamCell(b)}<div class="muted" style="font-size:12px">${rec[b].w}-${rec[b].l} · #${curSeed[b]} · proj ${f1(g[5])}</div>${outLine(b)}</div>
       ${gi?`<div class="wp" title="Win chance"><i style="width:${pa*100}%;background:${color(a)}"></i><i style="flex:1;background:${color(b)}"></i></div>
       <div class="stake"><span><b>${pct(pa)}</b> win chance</span>
         <span class="flame ${fl}">Stakes ${(gi.stakes*100).toFixed(0)} pts</span>
