@@ -20,7 +20,7 @@ TZ = ZoneInfo('America/Toronto')
 def token():
     cid, sec, rt = (os.environ[k] for k in ('YAHOO_CLIENT_ID', 'YAHOO_CLIENT_SECRET', 'YAHOO_REFRESH_TOKEN'))
     err = None
-    for redirect in ('https://localhost:8080', 'oob'):
+    for redirect in ('https://jakeschles.github.io/WFFL-League-Hub/', 'https://localhost:8080', 'oob'):
         req = urllib.request.Request(
             'https://api.login.yahoo.com/oauth2/get_token',
             data=urllib.parse.urlencode({'grant_type': 'refresh_token', 'refresh_token': rt,
