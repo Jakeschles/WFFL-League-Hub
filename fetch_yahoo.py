@@ -210,4 +210,11 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except RuntimeError as e:
+        # Yahoo hasn't approved this app for the Fantasy API yet: skip quietly instead of
+        # failing every hour. It starts working by itself once access is granted.
+        if 'not authorized to perform this action' in str(e):
+            print('Yahoo Fantasy API access not approved yet; skipping this run.'); sys.exit(0)
+        raise
