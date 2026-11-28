@@ -51,7 +51,7 @@ def get(path):
         except urllib.error.HTTPError as e:
             if e.code in (429, 500, 502, 503) and attempt < 2:
                 time.sleep(5 * (attempt + 1)); continue
-            raise RuntimeError(f'{path}: HTTP {e.code} {e.read()[:300]!r}')
+            raise RuntimeError(f'{path}: HTTP {e.code} {e.read().decode("utf-8", "replace")}')
 
 
 def txt(el, path, default=''):
@@ -215,6 +215,8 @@ if __name__ == '__main__':
     except RuntimeError as e:
         # Yahoo hasn't approved this app for the Fantasy API yet: skip quietly instead of
         # failing every hour. It starts working by itself once access is granted.
-        if 'not authorized to perform this action' in str(e):
-            print('Yahoo Fantasy API access not approved yet; skipping this run.'); sys.exit(0)
+        if 'not authorized' in str(e).lower():
+            print('::warning::Yahoo has not approved this app for the Fantasy Sports API yet; '
+                  'skipping this run. Apply at https://sports.yahoo.com/developer/access/')
+            sys.exit(0)
         raise
