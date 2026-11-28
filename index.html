@@ -125,7 +125,19 @@ select{background:#fff;color:var(--text);border:1px solid #cfd6df;border-radius:
 .tx .p .plus{color:var(--turf-t);font-weight:700} .tx .p .minus{color:var(--red-t);font-weight:700}
 .trade-row{background:linear-gradient(90deg,rgba(169,139,255,.12),transparent)}
 /* headlines */
-.hgrid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.hcar{position:relative}
+.htrack{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 28px)/3);gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;padding:2px 2px 8px;overscroll-behavior-x:contain}
+.htrack::-webkit-scrollbar{display:none}
+.htrack>.hcard{scroll-snap-align:start;min-width:0}
+.hnav{position:absolute;top:-50px;z-index:2;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--text);font:600 22px/1 var(--body);cursor:pointer;box-shadow:0 2px 8px rgba(16,24,40,.10);display:grid;place-items:center;transition:transform .15s,background .15s}
+.hnav:hover{background:var(--panel2);transform:scale(1.06)}
+.hnav.prev{right:44px} .hnav.next{right:0}
+.hdots{display:flex;justify-content:center;gap:7px;margin-top:12px}
+.hdots button{width:8px;height:8px;padding:0;border:0;border-radius:99px;background:#cfd6de;cursor:pointer;transition:width .25s,background .25s}
+.hdots button.on{width:24px;background:var(--turf)}
+@media(max-width:900px){.htrack{grid-auto-columns:calc((100% - 14px)/2)}}
+@media(max-width:760px){.hnav{display:none}}
+@media(max-width:600px){.htrack{grid-auto-columns:86%}}
 .hcard{background:#fff;border:1px solid var(--line);border-top:5px solid var(--accent,var(--turf));border-radius:12px;padding:16px 18px 18px;box-shadow:0 1px 3px rgba(16,24,40,.06)}
 .hcard .tag{font:700 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--accent-t,var(--turf-t))}
 .hcard h3{font:600 22px/1.15 var(--head);margin:8px 0 8px;letter-spacing:.01em}
@@ -187,7 +199,7 @@ footer{color:var(--dim);font-size:12px;padding:40px 0 60px;border-top:1px solid 
 <section id="headlines">
   <h2><span class="n">01</span>Headlines</h2>
   <p class="lede">The storylines worth knowing, built from the latest standings, results and moves.</p>
-  <div class="hgrid" id="headlineList"></div>
+  <div class="hcar"><button class="hnav prev" aria-label="Previous headline">&#8249;</button><div class="htrack" id="headlineList" aria-live="off"></div><button class="hnav next" aria-label="Next headline">&#8250;</button></div><div class="hdots" id="hdots"></div>
 </section>
 
 <section id="standings">
@@ -822,6 +834,25 @@ function weekAwards(w){
   if(cl.length||el.length) add('Clinch watch', `${cl.length} in, ${el.length} out`, `${cl.length?'Clinched: '+cl.map(tp).join(' ')+'. ':''}${el.length?'Eliminated: '+el.map(tp).join(' ')+'.':''}`);
   else if(remaining.length) add('Clinch watch', `Everyone's still alive`, `Nobody has clinched or been eliminated yet. All ${T.length} teams still have a path.`);
   document.getElementById('headlineList').innerHTML=H.join('');
+  // auto-scrolling carousel: advances one card every 3s, loops, pauses on hover/touch/focus
+  const tr=document.getElementById('headlineList'), dotsEl=document.getElementById('hdots'), car=tr.parentElement;
+  const cards=[...tr.children]; if(window.__hcarTimer) clearInterval(window.__hcarTimer);
+  const per=()=>{const w=cards[1]?cards[1].offsetLeft-cards[0].offsetLeft:tr.clientWidth; return Math.max(1,Math.round((tr.clientWidth+14)/w));};
+  const last=()=>Math.max(0,cards.length-per());
+  const idx=()=>{let b=0,d=1e9; cards.forEach((c,i)=>{const x=Math.abs(c.offsetLeft-cards[0].offsetLeft-tr.scrollLeft); if(x<d){d=x;b=i;}}); return Math.min(b,last());};
+  const go=i=>{const n=last(); i=i>n?0:i<0?n:i; tr.scrollTo({left:cards[i].offsetLeft-cards[0].offsetLeft});};
+  const drawDots=()=>{const n=last(); dotsEl.innerHTML=n?Array.from({length:n+1},(_,i)=>`<button aria-label="Headline ${i+1}"></button>`).join(''):''; dotsEl.querySelectorAll('button').forEach((b,i)=>b.onclick=()=>{go(i);hold(6000);}); mark();};
+  const mark=()=>{const i=idx(); dotsEl.querySelectorAll('button').forEach((b,j)=>b.classList.toggle('on',j===i));};
+  let paused=false, until=0; const hold=ms=>{until=Date.now()+ms;};
+  car.querySelector('.prev').onclick=()=>{go(idx()-1);hold(6000);};
+  car.querySelector('.next').onclick=()=>{go(idx()+1);hold(6000);};
+  car.addEventListener('mouseenter',()=>paused=true); car.addEventListener('mouseleave',()=>paused=false);
+  car.addEventListener('focusin',()=>paused=true); car.addEventListener('focusout',()=>paused=false);
+  tr.addEventListener('pointerdown',()=>hold(6000),{passive:true}); tr.addEventListener('touchstart',()=>hold(6000),{passive:true});
+  let st; tr.addEventListener('scroll',()=>{clearTimeout(st); st=setTimeout(mark,60);},{passive:true});
+  window.addEventListener('resize',drawDots); drawDots();
+  if(!matchMedia('(prefers-reduced-motion: reduce)').matches && cards.length>per())
+    window.__hcarTimer=setInterval(()=>{ if(!paused && !document.hidden && Date.now()>until) go(idx()+1); },3000);
 })();
 
 }
